@@ -18,8 +18,14 @@ endif()
 
 
 set(openvr_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/openvr/headers")
-set(openvr_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/openvr/lib/win64")
-set(openvr_BINARY_DIR "${CMAKE_SOURCE_DIR}/openvr/bin/win64")
+
+if (WIN32)
+  set(openvr_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/openvr/lib/win64")
+  set(openvr_BINARY_DIR "${CMAKE_SOURCE_DIR}/openvr/bin/win64")
+elseif (UNIX)
+  set(openvr_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/openvr/lib/linux64")
+  set(openvr_BINARY_DIR "${CMAKE_SOURCE_DIR}/openvr/bin/linux64")
+endif()
 
 include_directories(SYSTEM ${openvr_INCLUDE_DIR})
 link_directories(${openvr_LIBRARY_DIR})

@@ -103,7 +103,14 @@ public:
     auto publish_message =
       [this]() -> void
       {
-          ButtonStates states[8];
+          while (msg_->buttons.size() < 8) {
+            msg_->buttons.push_back(0);
+          }
+		  while (msg_->axes.size() < 6) {
+		    msg_->axes.push_back(0.0);
+		  }
+          /*ButtonStates states[8];
+		  float axes[20];*/
           std::vector<int>::iterator itr = controllerIndices.begin();
           for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
             vr::VRControllerState_t state;
@@ -112,20 +119,28 @@ public:
 
             ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseRawAndUncalibrated, *(itr+controller), &state, sizeof(state), &pose);
 
-
+			// button states
             for (int button = 0; button < 4; ++button) {
               if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
-                states[button + 4*controller] = Button_Pressed;
+                //states[button + 4*controller] = Button_Pressed;
+				*(msg_->buttons.begin() + button + controller * 4) = Button_Pressed;
               }
               else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
-                states[button + 4*controller] = Button_Touched;
+                //states[button + 4*controller] = Button_Touched;
+				*(msg_->buttons.begin() + button + controller * 4) = Button_Touched;
               }
               else {
-                states[button + 4*controller] = Button_Released;
+                //states[button + 4*controller] = Button_Released;
+				*(msg_->buttons.begin() + button + controller * 4) = Button_Released;
               }
 
               //std::cout << buttonNames[button] << ": " << stateNames[states[button]] << "  ";
             }
+			
+			//axis
+			*(msg_->axes.begin() + 0 + 3 * controller) = state.rAxis[0].x;
+			*(msg_->axes.begin() + 1 + 3 * controller) = state.rAxis[0].y;
+			*(msg_->axes.begin() + 2 + 3 * controller) = state.rAxis[1].x;
 
             /*std::string matrix = "";
             matrix += "{";
@@ -145,19 +160,17 @@ public:
             matrix += "}";
             for (int i = matrix.size(); i < 138; ++i) {
               matrix += " ";
-            }*/
-            //std::cout << matrix << "                                                  ";
-            //std::cout << "ETrackingResult: " << pose.eTrackingResult << "   ";
+            }
+            std::cout << matrix << "                                                  ";
+            //std::cout << "ETrackingResult: " << pose.eTrackingResult << "   ";*/
           }
 
-          std::cout << "\r";
-        while(msg_->buttons.size() < 8) {
-          msg_->buttons.push_back(0);
-        }
+          //std::cout << "\r";
 
-        for(int button = 0; button < 8; ++button) {
+        /*for(int button = 0; button < 8; ++button) {
           *(msg_->buttons.begin() + button) = states[button];
-        }
+        }*/
+
         
 	std::string controllersString[2] = {"",""};
 	for(int i = 0; i < 2; ++i) {
