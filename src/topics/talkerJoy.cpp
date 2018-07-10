@@ -49,6 +49,7 @@ const uint64_t buttonBitmasks[4] = {
 
 Device devices[vr::k_unMaxTrackedDeviceCount];
 std::vector<int> controllerIndices;
+vr::IVRSystem* ivrSystem;
 
 //*devices must be a pointer to an array of Device structs of size vr::k_unMaxTrackedDeviceCount
 void catalogDevices(vr::IVRSystem* ivrSystem, Device* devices, bool printOutput) {
@@ -102,9 +103,72 @@ public:
     auto publish_message =
       [this]() -> void
       {
-    count_++;
-        msg_->buttons.push_back(count_*2);
-    RCLCPP_INFO(this->get_logger(), "Publishing: button %i = %i", msg_->buttons.size(), msg_->buttons.back());
+          ButtonStates states[8];
+          std::vector<int>::iterator itr = controllerIndices.begin();
+          for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
+            vr::VRControllerState_t state;
+            vr::TrackedDevicePose_t pose;
+            //std::cout << "Controller " << *(itr+controller) << "    ";
+
+            ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseRawAndUncalibrated, *(itr+controller), &state, sizeof(state), &pose);
+
+
+            for (int button = 0; button < 4; ++button) {
+              if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
+                states[button + 4*controller] = Button_Pressed;
+              }
+              else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
+                states[button + 4*controller] = Button_Touched;
+              }
+              else {
+                states[button + 4*controller] = Button_Released;
+              }
+
+              //std::cout << buttonNames[button] << ": " << stateNames[states[button]] << "  ";
+            }
+
+            /*std::string matrix = "";
+            matrix += "{";
+            for (int r = 0; r < 3; ++r) {
+              matrix += "{";
+              for (int c = 0; c < 4; ++c) {
+                matrix += std::to_string(pose.mDeviceToAbsoluteTracking.m[r][c]);
+                if (c != 3) {
+                  matrix += ", ";
+                }
+              }
+              matrix += "}";
+              if (r != 2) {
+                matrix += ", ";
+              }
+            }
+            matrix += "}";
+            for (int i = matrix.size(); i < 138; ++i) {
+              matrix += " ";
+            }*/
+            //std::cout << matrix << "                                                  ";
+            //std::cout << "ETrackingResult: " << pose.eTrackingResult << "   ";
+          }
+
+          std::cout << "\r";
+        while(msg_->buttons.size() < 8) {
+          msg_->buttons.push_back(0);
+        }
+
+        for(int button = 0; button < 8; ++button) {
+          *(msg_->buttons.begin() + button) = states[button];
+        }
+        
+	std::string controllersString[2] = {"",""};
+	for(int i = 0; i < 2; ++i) {
+	  for(int j = 0; j < 4; ++j) {
+	    controllersString[i] += std::to_string(msg_->buttons.at(j + 4*i));
+	    if(j != 3) {
+              controllersString[i] += ",";
+	    }
+	  }
+	}
+    RCLCPP_INFO(this->get_logger(), "Publishing: controller 1 buttons = [%s] and controller 2 buttons = [%s]", controllersString[0], controllersString[1]);
 
     pub_->publish(msg_);
       };
@@ -170,7 +234,7 @@ int main(int argc, char * argv[]) {
 
     // Initialize system
     vr::HmdError error;
-    vr::IVRSystem* ivrSystem = vr::VR_Init(&error, vr::VRApplication_Other);
+    ivrSystem = vr::VR_Init(&error, vr::VRApplication_Other);
     std::cout << "Error: " << vr::VR_GetVRInitErrorAsSymbol(error) << std::endl;
     std::cout << "Pointer to the IVRSystem is " << ivrSystem << std::endl;
 
@@ -194,61 +258,6 @@ int main(int argc, char * argv[]) {
     if(exitType == 2) {
       rclcpp::spin(node);
     }
-        /*
-        while (true) {
-          ButtonStates states[4];
-          for (std::vector<int>::iterator itr = controllerIndices.begin(); itr != controllerIndices.end(); ++itr) {
-            vr::VRControllerState_t state;
-            vr::TrackedDevicePose_t pose;
-            std::cout << "Controller " << *itr << "    ";
-
-            ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseRawAndUncalibrated, *itr, &state, sizeof(state), &pose);
-
-
-            for (int button = 0; button < 4; ++button) {
-              if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
-                states[button] = Button_Pressed;
-              }
-              else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
-                states[button] = Button_Touched;
-              }
-              else {
-                states[button] = Button_Released;
-              }
-
-              std::cout << buttonNames[button] << ": " << stateNames[states[button]] << "  ";
-            }
-
-            std::string matrix = "";
-            matrix += "{";
-            for (int r = 0; r < 3; ++r) {
-              matrix += "{";
-              for (int c = 0; c < 4; ++c) {
-                matrix += std::to_string(pose.mDeviceToAbsoluteTracking.m[r][c]);
-                if (c != 3) {
-                  matrix += ", ";
-                }
-              }
-              matrix += "}";
-              if (r != 2) {
-                matrix += ", ";
-              }
-            }
-            matrix += "}";
-            for (int i = matrix.size(); i < 138; ++i) {
-              matrix += " ";
-            }
-            std::cout << matrix << "                                                  ";
-            //std::cout << "ETrackingResult: " << pose.eTrackingResult << "   ";
-          }
-
-          std::cout << "\r";
-          if ((GetKeyState(VK_SHIFT) & 0x8000)) {
-            std::cout << std::endl;
-            input = "";
-            break;
-          }
-        }*/
 
     std::cout << "exiting..." << std::endl;
 
