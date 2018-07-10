@@ -23,7 +23,10 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rcutils/cmdline_parser.h"
-#include "sensor_msgs/msg/Joy.hpp"
+#include "sensor_msgs/msg/joy.hpp"
+//#include "vive_msgs/msg/controller.hpp"
+//#include "vive_msgs/msg/head_mounted_display.hpp"
+#include "vive_msgs/msg/vive_system.hpp"
 
 using namespace std::chrono_literals;
 
@@ -97,22 +100,24 @@ public:
   explicit Talker(const std::string & topic_name)
   : Node("talker")
   {
-  msg_ = std::make_shared<sensor_msgs::msg::Joy>();
+  //msg_ = std::make_shared<sensor_msgs::msg::Joy>();
+  msg_ = std::make_shared<vive_msgs::msg::ViveSystem>();
 
     // Create a function for when messages are to be sent.
     auto publish_message =
       [this]() -> void
       {
-          while (msg_->buttons.size() < 8) {
-            msg_->buttons.push_back(0);
-          }
-		  while (msg_->axes.size() < 6) {
-		    msg_->axes.push_back(0.0);
-		  }
-          /*ButtonStates states[8];
-		  float axes[20];*/
+	      std::string controllersString[2] = {"",""};
+
           std::vector<int>::iterator itr = controllerIndices.begin();
           for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
+            while (msg_->controllers[controller].joystick.buttons.size() < 4) {
+              msg_->controllers[controller].joystick.buttons.push_back(0);
+            }
+		    while (msg_->controllers[controller].joystick.axes.size() < 3) {
+		      msg_->controllers[controller].joystick.axes.push_back(0.0);
+		    }
+
             vr::VRControllerState_t state;
             vr::TrackedDevicePose_t pose;
             //std::cout << "Controller " << *(itr+controller) << "    ";
@@ -123,24 +128,28 @@ public:
             for (int button = 0; button < 4; ++button) {
               if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
                 //states[button + 4*controller] = Button_Pressed;
-				*(msg_->buttons.begin() + button + controller * 4) = Button_Pressed;
+				*(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Pressed;
               }
               else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
                 //states[button + 4*controller] = Button_Touched;
-				*(msg_->buttons.begin() + button + controller * 4) = Button_Touched;
+				*(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Touched;
               }
               else {
                 //states[button + 4*controller] = Button_Released;
-				*(msg_->buttons.begin() + button + controller * 4) = Button_Released;
+				*(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Released;
               }
 
+	          controllersString[controller] += std::to_string(msg_->controllers[controller].joystick.buttons.at(button));
+	          if(button != 3) {
+                controllersString[controller] += ",";
+	          }
               //std::cout << buttonNames[button] << ": " << stateNames[states[button]] << "  ";
             }
 			
 			//axis
-			*(msg_->axes.begin() + 0 + 3 * controller) = state.rAxis[0].x;
-			*(msg_->axes.begin() + 1 + 3 * controller) = state.rAxis[0].y;
-			*(msg_->axes.begin() + 2 + 3 * controller) = state.rAxis[1].x;
+			*(msg_->controllers[controller].joystick.axes.begin() + 0) = state.rAxis[0].x;
+			*(msg_->controllers[controller].joystick.axes.begin() + 1) = state.rAxis[0].y;
+			*(msg_->controllers[controller].joystick.axes.begin() + 2) = state.rAxis[1].x;
 
             /*std::string matrix = "";
             matrix += "{";
@@ -167,29 +176,16 @@ public:
 
           //std::cout << "\r";
 
-        /*for(int button = 0; button < 8; ++button) {
-          *(msg_->buttons.begin() + button) = states[button];
-        }*/
-
-        
-	std::string controllersString[2] = {"",""};
-	for(int i = 0; i < 2; ++i) {
-	  for(int j = 0; j < 4; ++j) {
-	    controllersString[i] += std::to_string(msg_->buttons.at(j + 4*i));
-	    if(j != 3) {
-              controllersString[i] += ",";
-	    }
-	  }
-	}
     RCLCPP_INFO(this->get_logger(), "Publishing: controller 1 buttons = [%s] and controller 2 buttons = [%s]", controllersString[0], controllersString[1]);
-
-    pub_->publish(msg_);
+		  //msg_->controllers[0].joystick.buttons.push_back(2);
+		  pub_->publish(msg_);
       };
 
     // Create a publisher with a custom Quality of Service profile.
     rmw_qos_profile_t custom_qos_profile = rmw_qos_profile_default;
     custom_qos_profile.depth = 7;
-    pub_ = this->create_publisher<sensor_msgs::msg::Joy>(topic_name, custom_qos_profile);
+    //pub_ = this->create_publisher<sensor_msgs::msg::Joy>(topic_name, custom_qos_profile);
+    pub_ = this->create_publisher<vive_msgs::msg::ViveSystem>(topic_name, custom_qos_profile);
 
     // Use a timer to schedule periodic message publishing.
     timer_ = this->create_wall_timer(1s, publish_message);
@@ -197,8 +193,10 @@ public:
 
 private:
   size_t count_ = 1;
-  std::shared_ptr<sensor_msgs::msg::Joy> msg_;
-  rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr pub_;
+  /*std::shared_ptr<sensor_msgs::msg::Joy> msg_;
+  rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr pub_;*/
+  std::shared_ptr<vive_msgs::msg::ViveSystem> msg_;
+  rclcpp::Publisher<vive_msgs::msg::ViveSystem>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

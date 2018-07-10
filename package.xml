@@ -3,16 +3,16 @@
 <package format="2">
   <name>openvr_driver</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Publishes values from the Vive system over ROS2</description>
   <maintainer email="danieljnchen@gmail.com">Daniel Chen</maintainer>
   <license>TODO: Apache 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>sensor_msgs</depend>
+  <depend>vive_msgs</depend>
   <depend>rclcpp</depend>
   <depend>rcutils</depend>
-  <depend>tf</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

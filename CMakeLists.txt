@@ -39,14 +39,16 @@ find_package(rclcpp REQUIRED)
 find_package(rcutils)
 find_package(rmw REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(tf2 REQUIRED)
+find_package(vive_msgs REQUIRED)
 
 function(custom_executable subfolder target)
   add_executable(${target} src/${subfolder}/${target}.cpp)
   ament_target_dependencies(${target}
     "rclcpp"
     "rcutils"
-    "sensor_msgs")
+    "sensor_msgs"
+    "vive_msgs"
+)
   install(TARGETS ${target}
   DESTINATION lib/${PROJECT_NAME})
 endfunction()
