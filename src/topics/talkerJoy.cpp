@@ -23,10 +23,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rcutils/cmdline_parser.h"
-#include "sensor_msgs/msg/joy.hpp"
 //#include "vive_msgs/msg/controller.hpp"
 //#include "vive_msgs/msg/head_mounted_display.hpp"
 #include "vive_msgs/msg/vive_system.hpp"
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Quaternion.h"
 
 using namespace std::chrono_literals;
 
@@ -90,7 +91,7 @@ void print_usage() {
   printf("talker [-t topic_name] [-h]\n");
   printf("options:\n");
   printf("-h : Print this help function.\n");
-  printf("-t topic_name : Specify the topic on which to publish. Defaults to joystick.\n");
+  printf("-t topic_name : Specify the topic on which to publish. Defaults to vive.\n");
 }
 
 // Create a Talker class that subclasses the generic rclcpp::Node base class.
@@ -151,6 +152,27 @@ public:
 			*(msg_->controllers[controller].joystick.axes.begin() + 1) = state.rAxis[0].y;
 			*(msg_->controllers[controller].joystick.axes.begin() + 2) = state.rAxis[1].x;
 
+			//position
+			msg_->controllers[controller].pose.position.x = pose.mDeviceToAbsoluteTracking.m[0][3];
+			msg_->controllers[controller].pose.position.y = pose.mDeviceToAbsoluteTracking.m[1][3];
+			msg_->controllers[controller].pose.position.z = pose.mDeviceToAbsoluteTracking.m[2][3];
+
+			//orientation
+
+			tf2::Matrix3x3 rotMatrix;
+			tf2::Quaternion quaternion;
+
+			rotMatrix.setValue(pose.mDeviceToAbsoluteTracking.m[0][0], pose.mDeviceToAbsoluteTracking.m[0][1], pose.mDeviceToAbsoluteTracking.m[0][2],
+			                   pose.mDeviceToAbsoluteTracking.m[1][0], pose.mDeviceToAbsoluteTracking.m[1][1], pose.mDeviceToAbsoluteTracking.m[1][2],
+				               pose.mDeviceToAbsoluteTracking.m[2][0], pose.mDeviceToAbsoluteTracking.m[2][1], pose.mDeviceToAbsoluteTracking.m[2][2]
+			);
+
+			rotMatrix.getRotation(quaternion);
+			msg_->controllers[controller].pose.orientation.x = quaternion.x();
+			msg_->controllers[controller].pose.orientation.y = quaternion.y();
+			msg_->controllers[controller].pose.orientation.z = quaternion.z();
+			msg_->controllers[controller].pose.orientation.w = quaternion.w();
+
             /*std::string matrix = "";
             matrix += "{";
             for (int r = 0; r < 3; ++r) {
@@ -188,7 +210,7 @@ public:
     pub_ = this->create_publisher<vive_msgs::msg::ViveSystem>(topic_name, custom_qos_profile);
 
     // Use a timer to schedule periodic message publishing.
-    timer_ = this->create_wall_timer(1s, publish_message);
+    timer_ = this->create_wall_timer(1ms, publish_message);
   }
 
 private:
@@ -217,7 +239,7 @@ int main(int argc, char * argv[]) {
   rclcpp::init(argc, argv);
 
   // Parse the command line options.
-  auto topic = std::string("joystick");
+  auto topic = std::string("vive");
   char * cli_option = rcutils_cli_get_option(argv, argv + argc, "-t");
   if (nullptr != cli_option) {
     topic = std::string(cli_option);

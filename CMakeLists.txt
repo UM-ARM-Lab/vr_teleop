@@ -40,6 +40,7 @@ find_package(rcutils)
 find_package(rmw REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(vive_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 
 function(custom_executable subfolder target)
   add_executable(${target} src/${subfolder}/${target}.cpp)
@@ -48,6 +49,7 @@ function(custom_executable subfolder target)
     "rcutils"
     "sensor_msgs"
     "vive_msgs"
+    "tf2"
 )
   install(TARGETS ${target}
   DESTINATION lib/${PROJECT_NAME})
