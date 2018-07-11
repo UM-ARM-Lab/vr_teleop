@@ -51,7 +51,7 @@ add_message_files(
   FILES
   Controller.msg
   HeadMountedDisplay.msg
-  VirtualRealitySystem.msg
+  ViveSystem.msg
 )
 
 ## Generate services in the 'srv' folder
