@@ -1,0 +1,5 @@
+-
+  ros1_package_name: 'ros1_vive_msgs'
+#  ros1_message_name: 'ros1_msg_name'
+  ros2_package_name: 'ros2_vive_msgs'
+#  ros2_message_name: 'ros2_msg_name'
