@@ -26,8 +26,3 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
-
-install(
-  FILES mapping_rules.yaml
-  DESTINATION share/${PROJECT_NAME}
-)
