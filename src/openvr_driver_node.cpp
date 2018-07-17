@@ -4,10 +4,9 @@
 #include <string>
 #include <cmath>
 
-#include <Windows.h>
-
 #include <openvr.h>
 #include "rclcpp/rclcpp.hpp"
+
 #include "vive_msgs/msg/vive_system.hpp"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
