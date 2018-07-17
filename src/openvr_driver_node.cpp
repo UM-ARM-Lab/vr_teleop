@@ -238,12 +238,11 @@ int main(int argc, char * argv[]) {
   catalogDevices(ivrSystem, devices, false);
   catalogControllers(devices, true);
 
-  std::string input;
-  uint32_t exitType = 0;
-  while (exitType == 0) {
+  while (true) {
     // Wait for input
     std::cout << "> ";
-    getline(std::cin, input);
+    std::string input;
+    std::cin >> input;
     
     if (input == "refresh") {
       catalogDevices(ivrSystem, devices, true);
