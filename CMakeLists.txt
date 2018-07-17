@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.5)
-
 project(openvr_driver)
 
 # Default to C99
@@ -16,7 +15,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-
+# Include OpenVR
 set(openvr_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/openvr/headers")
 
 if (WIN32)
@@ -30,38 +29,32 @@ endif()
 include_directories(SYSTEM ${openvr_INCLUDE_DIR})
 link_directories(${openvr_LIBRARY_DIR})
 
-# file(COPY ${openvr_BINARY_DIR}/openvr_api.dll DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-
-# find dependencies
+# Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rcutils)
 find_package(rmw REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(vive_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 
-function(custom_executable subfolder target)
-  add_executable(${target} src/${subfolder}/${target}.cpp)
-  ament_target_dependencies(${target}
-    "rclcpp"
-    "rcutils"
-    "sensor_msgs"
-    "vive_msgs"
-    "tf2"
+# Add cpp file
+add_executable(${PROJECT_NAME}_node src/${PROJECT_NAME}_node.cpp)
+ament_target_dependencies(${PROJECT_NAME}_node
+  "rclcpp"
+  "sensor_msgs"
+  "vive_msgs"
+  "tf2"
 )
-  install(TARGETS ${target}
+install(TARGETS ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})
-endfunction()
+  
+target_link_libraries(${PROJECT_NAME}_node openvr_api)
 
-custom_executable(topics talkerJoy)
-target_link_libraries(talkerJoy openvr_api)
-custom_executable(topics listenerJoy)
-
+# (hack) Install OpenVR api dll
 install(FILES ${openvr_BINARY_DIR}/openvr_api.dll
   DESTINATION lib/${PROJECT_NAME})
 
+# Testing config
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

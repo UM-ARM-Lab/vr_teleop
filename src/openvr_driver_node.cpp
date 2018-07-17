@@ -1,30 +1,13 @@
-// Copyright 2014 Open Source Robotics Foundation, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include <chrono>
 #include <cstdio>
 #include <memory>
 #include <string>
 #include <cmath>
 
-#include <openvr.h>
 #include <Windows.h>
 
+#include <openvr.h>
 #include "rclcpp/rclcpp.hpp"
-#include "rcutils/cmdline_parser.h"
-//#include "vive_msgs/msg/controller.hpp"
-//#include "vive_msgs/msg/head_mounted_display.hpp"
 #include "vive_msgs/msg/vive_system.hpp"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
@@ -57,7 +40,14 @@ vr::IVRSystem* ivrSystem;
 
 //*devices must be a pointer to an array of Device structs of size vr::k_unMaxTrackedDeviceCount
 void catalogDevices(vr::IVRSystem* ivrSystem, Device* devices, bool printOutput) {
-  std::string TrackedDeviceTypes[] = { "Invalid (disconnected)","HMD","Controller","Generic Tracker","Tracking Reference (base station)","Display Redirect" };
+  std::string TrackedDeviceTypes[] = {
+    "Invalid (disconnected)", 
+    "HMD",
+    "Controller",
+    "Generic Tracker",
+    "Tracking Reference (base station)",
+    "Display Redirect"
+  };
 
   for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i) {
     if (printOutput) {
@@ -69,6 +59,7 @@ void catalogDevices(vr::IVRSystem* ivrSystem, Device* devices, bool printOutput)
     (*(devices + i)).type = ivrSystem->GetTrackedDeviceClass(i);
   }
 }
+
 void catalogControllers(Device* devices, bool printOutput) {
   controllerIndices.erase(controllerIndices.begin(), controllerIndices.begin() + controllerIndices.size());
   for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i) {
@@ -85,50 +76,37 @@ void catalogControllers(Device* devices, bool printOutput) {
   }
 }
 
-
-void print_usage() {
-  printf("Usage for talker app:\n");
-  printf("talker [-t topic_name] [-h]\n");
-  printf("options:\n");
-  printf("-h : Print this help function.\n");
-  printf("-t topic_name : Specify the topic on which to publish. Defaults to vive.\n");
-}
-
 // Create a Talker class that subclasses the generic rclcpp::Node base class.
 // The main function below will instantiate the class as a ROS node.
 class Talker : public rclcpp::Node {
 public:
-  explicit Talker(const std::string & topic_name)
-  : Node("talker")
-  {
-  //msg_ = std::make_shared<sensor_msgs::msg::Joy>();
-  msg_ = std::make_shared<vive_msgs::msg::ViveSystem>();
+  explicit Talker(const std::string & topic_name) : Node("talker") {
+    msg_ = std::make_shared<vive_msgs::msg::ViveSystem>();
 
     // Create a function for when messages are to be sent.
-    auto publish_message =
-      [this]() -> void
-      {
-	      std::string controllersString[2] = {"",""};
+    auto publish_message = [this]() -> void {
+      std::string controllersString[2] = {"",""};
 
-          std::vector<int>::iterator itr = controllerIndices.begin();
-          for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
-            while (msg_->controllers[controller].joystick.buttons.size() < 4) {
-              msg_->controllers[controller].joystick.buttons.push_back(0);
-            }
-		    while (msg_->controllers[controller].joystick.axes.size() < 3) {
-		      msg_->controllers[controller].joystick.axes.push_back(0.0);
-		    }
+      std::vector<int>::iterator itr = controllerIndices.begin();
+      for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
+        while (msg_->controllers[controller].joystick.buttons.size() < 4) {
+          msg_->controllers[controller].joystick.buttons.push_back(0);
+        }
 
-            vr::VRControllerState_t state;
-            vr::TrackedDevicePose_t pose;
-            //std::cout << "Controller " << *(itr+controller) << "    ";
+        while (msg_->controllers[controller].joystick.axes.size() < 3) {
+          msg_->controllers[controller].joystick.axes.push_back(0.0);
+        }
 
-            ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseRawAndUncalibrated, *(itr+controller), &state, sizeof(state), &pose);
+        vr::VRControllerState_t state;
+        vr::TrackedDevicePose_t pose;
+        //std::cout << "Controller " << *(itr+controller) << "    ";
 
-			// button states
-            for (int button = 0; button < 4; ++button) {
-              if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
-                //states[button + 4*controller] = Button_Pressed;
+        ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseRawAndUncalibrated, *(itr+controller), &state, sizeof(state), &pose);
+
+        // button states
+        for (int button = 0; button < 4; ++button) {
+          if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
+            //states[button + 4*controller] = Button_Pressed;
 				*(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Pressed;
               }
               else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
@@ -144,8 +122,8 @@ public:
 	          if(button != 3) {
                 controllersString[controller] += ",";
 	          }
-              //std::cout << buttonNames[button] << ": " << stateNames[states[button]] << "  ";
-            }
+            //std::cout << buttonNames[button] << ": " << stateNames[states[button]] << "  ";
+        }
 			
 			//axis
 			*(msg_->controllers[controller].joystick.axes.begin() + 0) = state.rAxis[0].x;
@@ -158,7 +136,6 @@ public:
 			msg_->controllers[controller].pose.position.z = pose.mDeviceToAbsoluteTracking.m[2][3];
 
 			//orientation
-
 			tf2::Matrix3x3 rotMatrix;
 			tf2::Quaternion quaternion;
 
@@ -198,7 +175,7 @@ public:
 
           //std::cout << "\r";
 
-    RCLCPP_INFO(this->get_logger(), "Publishing: controller 1 buttons = [%s] and controller 2 buttons = [%s]", controllersString[0], controllersString[1]);
+      //RCLCPP_INFO(this->get_logger(), "Publishing: controller 1 buttons = [%s] and controller 2 buttons = [%s]", controllersString[0], controllersString[1]);
 		  //msg_->controllers[0].joystick.buttons.push_back(2);
 		  pub_->publish(msg_);
       };
@@ -228,79 +205,72 @@ int main(int argc, char * argv[]) {
   // even when executed simultaneously within the launch file.
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
-  if (rcutils_cli_option_exist(argv, argv + argc, "-h")) {
-    print_usage();
-    return 0;
-  }
-
   // Initialize any global resources needed by the middleware and the client library.
   // You must call this before using any other part of the ROS system.
   // This should be called once per process.
   rclcpp::init(argc, argv);
 
-  // Parse the command line options.
-  auto topic = std::string("vive");
-  char * cli_option = rcutils_cli_get_option(argv, argv + argc, "-t");
-  if (nullptr != cli_option) {
-    topic = std::string(cli_option);
-  }
-
   // Create a node.
-  auto node = std::make_shared<Talker>(topic);
-
-  // spin will block until work comes in, execute work as it becomes available, and keep blocking.
-  // It will only be interrupted by Ctrl-C.
-
+  auto node = std::make_shared<Talker>("vive");
 
   // Check whether there is an HMD plugged-in and the SteamVR runtime is installed
-  if (vr::VR_IsHmdPresent()) {
-    std::cout << "An HMD was successfully found in the system" << std::endl;
-
-    if (vr::VR_IsRuntimeInstalled()) {
-      const char* runtime_path = vr::VR_RuntimePath();
-      std::cout << "Runtime correctly installed at '" << runtime_path << "'" << std::endl;
-    }
-    else {
-      std::cout << "Runtime was not found, quitting app" << std::endl;
-      return -1;
-    }
-
-    // Initialize system
-    vr::HmdError error;
-    ivrSystem = vr::VR_Init(&error, vr::VRApplication_Other);
-    std::cout << "Error: " << vr::VR_GetVRInitErrorAsSymbol(error) << std::endl;
-    std::cout << "Pointer to the IVRSystem is " << ivrSystem << std::endl;
-
-    catalogDevices(ivrSystem, devices, false);
-    catalogControllers(devices, true);
-
-    std::string input;
-    uint32_t exitType = 0;
-    while (exitType == 0) {
-      getline(std::cin, input);
-      if (input == "update") {
-        catalogDevices(ivrSystem, devices, true);
-        catalogControllers(devices, true);
-      } else if (input == "exit") {
-        exitType = 1;
-      } else if (input == "continue") {
-        exitType = 2;
-      }
-    }
-
-    if(exitType == 2) {
-      rclcpp::spin(node);
-    }
-
-    std::cout << "exiting..." << std::endl;
-
-    vr::VR_Shutdown();
-  }
-  else {
+  if (!vr::VR_IsHmdPresent()) {
     std::cout << "No HMD was found in the system, quitting app" << std::endl;
     return -1;
+  } else {
+    std::cout << "An HMD was successfully found in the system" << std::endl;
   }
 
+  if (!vr::VR_IsRuntimeInstalled()) {
+    std::cout << "Runtime was not found, quitting app" << std::endl;
+    return -1;
+  } else {
+    const char* runtime_path = vr::VR_RuntimePath();
+    std::cout << "Runtime correctly installed at '" << runtime_path << "'" << std::endl;
+  }
+
+  // Initialize system
+  vr::HmdError error;
+  ivrSystem = vr::VR_Init(&error, vr::VRApplication_Other);
+  std::cout << "VR Init status: " << vr::VR_GetVRInitErrorAsSymbol(error) << std::endl;
+  std::cout << "Pointer to the IVRSystem is " << ivrSystem << std::endl;
+
+  catalogDevices(ivrSystem, devices, false);
+  catalogControllers(devices, true);
+
+  std::string input;
+  uint32_t exitType = 0;
+  while (exitType == 0) {
+    // Wait for input
+    std::cout << "> ";
+    getline(std::cin, input);
+    
+    if (input == "refresh") {
+      catalogDevices(ivrSystem, devices, true);
+      catalogControllers(devices, true);
+    } else if (input == "start") {
+      exitType = 2;
+    } else if (input == "exit") {
+      exitType = 1;
+    } else if (input == "help") {
+      std::cout << "Available commands:" << std::endl;
+      std::cout << "  help - shows this" << std::endl;
+      std::cout << "  refresh - requeries system for VR devices" << std::endl;
+      std::cout << "  start - starts broadcasting VR data" << std::endl;
+      std::cout << "  exit - quits program" << std::endl;
+    } else {
+      std::cout << "Command not found, type 'help' for help" << std::endl;
+    }
+  }
+
+  if(exitType == 2) {
+    // spin will block until work comes in, execute work as it becomes available, and keep blocking.
+    // It will only be interrupted by Ctrl-C.
+    rclcpp::spin(node);
+  }
+  
+  vr::VR_Shutdown();
   rclcpp::shutdown();
+
   return 0;
 }
