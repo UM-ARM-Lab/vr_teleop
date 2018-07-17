@@ -94,7 +94,7 @@ public:
         vr::VRControllerState_t state;
         vr::TrackedDevicePose_t pose;
 
-        ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseRawAndUncalibrated, *(itr+controller), &state, sizeof(state), &pose);
+        ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseStanding, *(itr+controller), &state, sizeof(state), &pose);
 
         // Buttons
         for (int button = 0; button < 4; ++button) {
