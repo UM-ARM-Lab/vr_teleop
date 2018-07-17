@@ -249,9 +249,9 @@ int main(int argc, char * argv[]) {
       catalogDevices(ivrSystem, devices, true);
       catalogControllers(devices, true);
     } else if (input == "start") {
-      exitType = 2;
+      rclcpp::spin(node);
     } else if (input == "exit") {
-      exitType = 1;
+      break;
     } else if (input == "help") {
       std::cout << "Available commands:" << std::endl;
       std::cout << "  help - shows this" << std::endl;
@@ -261,12 +261,6 @@ int main(int argc, char * argv[]) {
     } else {
       std::cout << "Command not found, type 'help' for help" << std::endl;
     }
-  }
-
-  if(exitType == 2) {
-    // spin will block until work comes in, execute work as it becomes available, and keep blocking.
-    // It will only be interrupted by Ctrl-C.
-    rclcpp::spin(node);
   }
   
   vr::VR_Shutdown();
