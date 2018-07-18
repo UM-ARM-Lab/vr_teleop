@@ -79,8 +79,6 @@ public:
     msg_ = std::make_shared<vive_msgs::msg::ViveSystem>();
 
     auto publish_message = [this]() -> void {
-      std::string controllersString[2] = {"",""};
-
       std::vector<int>::iterator itr = controllerIndices.begin();
       for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
         while (msg_->controllers[controller].joystick.buttons.size() < 4) {
@@ -105,10 +103,6 @@ public:
           } else {
             *(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Released;
           }
-          controllersString[controller] += std::to_string(msg_->controllers[controller].joystick.buttons.at(button));
-          if (button != 3) {
-              controllersString[controller] += ",";
-          }
         }
         
         // Axis
@@ -117,10 +111,10 @@ public:
         *(msg_->controllers[controller].joystick.axes.begin() + 2) = state.rAxis[1].x;
 
         // Position
-        msg_->controllers[controller].pose.position.x = pose.mDeviceToAbsoluteTracking.m[0][3];
-        msg_->controllers[controller].pose.position.y = pose.mDeviceToAbsoluteTracking.m[1][3];
-        msg_->controllers[controller].pose.position.z = pose.mDeviceToAbsoluteTracking.m[2][3];
-
+        msg_->controllers[controller].posestamped.pose.position.x = pose.mDeviceToAbsoluteTracking.m[0][3];
+        msg_->controllers[controller].posestamped.pose.position.y = pose.mDeviceToAbsoluteTracking.m[1][3];
+        msg_->controllers[controller].posestamped.pose.position.z = pose.mDeviceToAbsoluteTracking.m[2][3];
+        
         // Orientation
         tf2::Matrix3x3 rotMatrix;
         tf2::Quaternion quaternion;
@@ -131,23 +125,26 @@ public:
         );
 
         rotMatrix.getRotation(quaternion);
-        msg_->controllers[controller].pose.orientation.x = quaternion.x();
-        msg_->controllers[controller].pose.orientation.y = quaternion.y();
-        msg_->controllers[controller].pose.orientation.z = quaternion.z();
-        msg_->controllers[controller].pose.orientation.w = quaternion.w();
+        msg_->controllers[controller].posestamped.pose.orientation.x = quaternion.x();
+        msg_->controllers[controller].posestamped.pose.orientation.y = quaternion.y();
+        msg_->controllers[controller].posestamped.pose.orientation.z = quaternion.z();
+        msg_->controllers[controller].posestamped.pose.orientation.w = quaternion.w();
+
+        // Fill PoseStamped header
+        msg_->controllers[controller].posestamped.header.seq = seq_count;
+        //msg_->controllers[controller].posestamped.header.time = rclcpp::Node::now();
+        msg_->controllers[controller].posestamped.header.frame_id = "vive_base";
       }
 
 		  pub_->publish(msg_);
     };
 
-    // Create a publisher with a custom Quality of Service profile.
     rmw_qos_profile_t custom_qos_profile = rmw_qos_profile_default;
     custom_qos_profile.depth = 7;
-    //pub_ = this->create_publisher<sensor_msgs::msg::Joy>(topic_name, custom_qos_profile);
     pub_ = this->create_publisher<vive_msgs::msg::ViveSystem>(topic_name, custom_qos_profile);
 
-    // Use a timer to schedule periodic message publishing.
-    timer_ = this->create_wall_timer(1s, publish_message);
+    // Update rate of openvr motion tracking is ~250Hz
+    timer_ = this->create_wall_timer(10ms, publish_message);
   }
 
 private:
