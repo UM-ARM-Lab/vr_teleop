@@ -1,0 +1,11 @@
+{
+    "ros.distro": "kinetic",
+    "python.autoComplete.extraPaths": [
+        "/home/andriym/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/home/andriym/catkin_ws/install/lib/python2.7/dist-packages",
+        "/opt/ros/kinetic/lib/python2.7/dist-packages"
+    ],
+    "files.associations": {
+        "core": "cpp"
+    }
+}

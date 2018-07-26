@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/andriym/catkin_ws/devel/include",
+                "/home/andriym/catkin_ws/install/include",
+                "/opt/ros/kinetic/include",
+                "/home/andriym/catkin_ws/src/arc_utilities/include",
+                "/home/andriym/catkin_ws/src/dual_arm_teleop/include",
+                "/home/andriym/catkin_ws/src/kuka_iiwa_interface/iiwa_robot_controllers/include",
+                "/home/andriym/catkin_ws/src/kuka_iiwa_interface/lcm/include",
+                "/home/andriym/catkin_ws/src/kuka_iiwa_interface/linux_fri_client/include",
+                "/home/andriym/catkin_ws/src/kuka_iiwa_interface/victor_hardware_interface/include",
+                "/home/andriym/catkin_ws/src/kuka_iiwa_interface/victor_ikfast_plugins/victor_ikfast_left_arm_plugin/include",
+                "/home/andriym/catkin_ws/src/kuka_iiwa_interface/victor_ikfast_plugins/victor_ikfast_right_arm_plugin/include",
+                "/usr/include"
+            ],
+            "name": "Linux",
+            "intelliSenseMode": "clang-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
