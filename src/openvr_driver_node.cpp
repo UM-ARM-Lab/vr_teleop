@@ -66,8 +66,8 @@ void catalogControllers(Device* devices, bool printOutput) {
   }
 
   if (printOutput) {
-    for (std::vector<int>::iterator i = controllerIndices.begin(); i != controllerIndices.end(); ++i) {
-      std::cout << "There is a controller with index " << *i << "." << std::endl;
+    for (int i = 0; i < controllerIndices.size(); ++i) {
+      std::cout << "There is a controller with index " << controllerIndices[i] << "." << std::endl;
     }
     std::cout << "There are " << controllerIndices.size() << " controllers." << std::endl;
   }
@@ -79,9 +79,14 @@ public:
     msg_ = std::make_shared<vive_msgs::msg::ViveSystem>();
 
     auto publish_message = [this]() -> void {
+
+      if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - update >= 1000) {
+        catalogDevices(ivrSystem, devices, false);
+        catalogControllers(devices, false);
+        update += 1000;
+      }
       
-      std::vector<int>::iterator itr = controllerIndices.begin();
-      for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
+      for (int controller = 0; controller < controllerIndices.size(); ++controller) {
         if (msg_->controllers.size() != controllerIndices.size()) {
           msg_->controllers.resize(controllerIndices.size());
         }
@@ -96,23 +101,23 @@ public:
         vr::VRControllerState_t state;
         vr::TrackedDevicePose_t pose;
 
-        ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseStanding, *(itr+controller), &state, sizeof(state), &pose);
+        ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseStanding, controllerIndices[controller], &state, sizeof(state), &pose);
 
         // Buttons
         for (int button = 0; button < 4; ++button) {
           if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
-            *(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Pressed;
+            msg_->controllers[controller].joystick.buttons[button] = Button_Pressed;
           } else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
-              *(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Touched;
+              msg_->controllers[controller].joystick.buttons[button] = Button_Touched;
           } else {
-            *(msg_->controllers[controller].joystick.buttons.begin() + button) = Button_Released;
+            msg_->controllers[controller].joystick.buttons[button] = Button_Released;
           }
         }
         
         // Axis
-        *(msg_->controllers[controller].joystick.axes.begin() + 0) = state.rAxis[0].x;
-        *(msg_->controllers[controller].joystick.axes.begin() + 1) = state.rAxis[0].y;
-        *(msg_->controllers[controller].joystick.axes.begin() + 2) = state.rAxis[1].x;
+        msg_->controllers[controller].joystick.axes[0] = state.rAxis[0].x;
+        msg_->controllers[controller].joystick.axes[1] = state.rAxis[0].y;
+        msg_->controllers[controller].joystick.axes[2] = state.rAxis[1].x;
 
         // Position
         msg_->controllers[controller].posestamped.pose.position.x = pose.mDeviceToAbsoluteTracking.m[0][3];
@@ -124,8 +129,8 @@ public:
         tf2::Quaternion quaternion;
 
         rotMatrix.setValue(pose.mDeviceToAbsoluteTracking.m[0][0], pose.mDeviceToAbsoluteTracking.m[0][1], pose.mDeviceToAbsoluteTracking.m[0][2],
-                          pose.mDeviceToAbsoluteTracking.m[1][0], pose.mDeviceToAbsoluteTracking.m[1][1], pose.mDeviceToAbsoluteTracking.m[1][2],
-                        pose.mDeviceToAbsoluteTracking.m[2][0], pose.mDeviceToAbsoluteTracking.m[2][1], pose.mDeviceToAbsoluteTracking.m[2][2]
+                           pose.mDeviceToAbsoluteTracking.m[1][0], pose.mDeviceToAbsoluteTracking.m[1][1], pose.mDeviceToAbsoluteTracking.m[1][2],
+                           pose.mDeviceToAbsoluteTracking.m[2][0], pose.mDeviceToAbsoluteTracking.m[2][1], pose.mDeviceToAbsoluteTracking.m[2][2]
         );
 
         rotMatrix.getRotation(quaternion);
@@ -137,6 +142,8 @@ public:
         // Fill PoseStamped header
         msg_->controllers[controller].posestamped.header.stamp = rclcpp::Node::now();
         msg_->controllers[controller].posestamped.header.frame_id = "vive_base";
+
+        msg_->controllers[controller].id = controllerIndices[controller];
       }
 
 		  pub_->publish(msg_);
@@ -155,6 +162,8 @@ private:
   std::shared_ptr<vive_msgs::msg::ViveSystem> msg_;
   rclcpp::Publisher<vive_msgs::msg::ViveSystem>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
+
+  int64_t update = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 };
 
 int main(int argc, char * argv[]) {
