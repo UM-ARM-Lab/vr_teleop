@@ -79,8 +79,12 @@ public:
     msg_ = std::make_shared<vive_msgs::msg::ViveSystem>();
 
     auto publish_message = [this]() -> void {
+      
       std::vector<int>::iterator itr = controllerIndices.begin();
       for (int controller = 0; itr + controller != controllerIndices.end(); ++controller) {
+        if (msg_->controllers.size() != controllerIndices.size()) {
+          msg_->controllers.resize(controllerIndices.size());
+        }
         while (msg_->controllers[controller].joystick.buttons.size() < 4) {
           msg_->controllers[controller].joystick.buttons.push_back(0);
         }
@@ -131,8 +135,7 @@ public:
         msg_->controllers[controller].posestamped.pose.orientation.w = quaternion.w();
 
         // Fill PoseStamped header
-        msg_->controllers[controller].posestamped.header.seq = seq_count;
-        //msg_->controllers[controller].posestamped.header.time = rclcpp::Node::now();
+        msg_->controllers[controller].posestamped.header.stamp = rclcpp::Node::now();
         msg_->controllers[controller].posestamped.header.frame_id = "vive_base";
       }
 
