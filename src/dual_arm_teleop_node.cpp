@@ -38,7 +38,7 @@
 
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_model/robot_model.h> 
 #include <moveit/robot_state/robot_state.h>
 
 // Vive
@@ -47,6 +47,8 @@
 // Victor
 #include "victor_hardware_interface/MotionCommand.h"
 #include "victor_hardware_interface/Robotiq3FingerCommand.h"
+
+#include <Eigen/Dense>
 
 class DualArmTeleop
 {
@@ -77,24 +79,55 @@ class DualArmTeleop
 
     void callback(vive_msgs::ViveSystem msg)
     {
-      for (int i = 0; i < 2; ++i)
+      assert(msg.controllers.size() == 2);
+      for (int controller = 0; controller < msg.controllers.size(); ++controller)
+      //for (const vive_msgs::Controller& controller : msg.controller)
       {
+        if (msg.controllers[controller].joystick.axes.size() == 0)
+        {
+          continue;
+        }
+        if (!initialized)
+        {
+          initialPoses[controller] = Eigen::Affine3d::Identity();
+          initialPoses[controller].translation() = Eigen::Vector3d(
+            msg.controllers[controller].posestamped.pose.position.x,
+            msg.controllers[controller].posestamped.pose.position.y,
+            msg.controllers[controller].posestamped.pose.position.z
+          );
+          initialPoses[controller].rotate(Eigen::Quaterniond(
+            msg.controllers[controller].posestamped.pose.orientation.x,
+            msg.controllers[controller].posestamped.pose.orientation.y,
+            msg.controllers[controller].posestamped.pose.orientation.z,
+            msg.controllers[controller].posestamped.pose.orientation.w
+          ));
+          initialized = true;
+        }
+
         // Joint state control
-        const Eigen::Affine3d& controller_pose_left = Eigen::Affine3d::Identity();
-        // controller_pose_left.translate(Eigen::Vector3d(
-        //   msg.controllers[i].posestamped.pose.position.x,
-        //   msg.controllers[i].posestamped.pose.position.y,
-        //   msg.controllers[i].posestamped.pose.position.z
-        // ));
+        Eigen::Affine3d controller_pose = Eigen::Affine3d::Identity();
+        controller_pose.translation() = initialPoses[controller].translation() -
+        Eigen::Vector3d(
+          msg.controllers[controller].posestamped.pose.position.x,
+          msg.controllers[controller].posestamped.pose.position.y,
+          msg.controllers[controller].posestamped.pose.position.z
+        );
+        controller_pose.rotate(Eigen::Quaterniond(
+          msg.controllers[controller].posestamped.pose.orientation.x,
+          msg.controllers[controller].posestamped.pose.orientation.y,
+          msg.controllers[controller].posestamped.pose.orientation.z,
+          msg.controllers[controller].posestamped.pose.orientation.w
+        ));
+        controller_pose.rotate(initialPoses[controller].rotation().inverse());
 
         // Print end-effector pose. Remember that this is in the model frame
-        ROS_INFO_STREAM("Translation: \n" << controller_pose_left.translation() << "\n");
-        ROS_INFO_STREAM("Rotation: \n" << controller_pose_left.rotation() << "\n");
+        ROS_INFO_STREAM("Translation: \n" << controller_pose.translation() << "\n");
+        ROS_INFO_STREAM("Rotation: \n" << controller_pose.rotation() << "\n");
 
         // Compute IK solution
         std::size_t attempts = 10;
         double timeout = 0.1;
-        bool found_ik = kinematic_state->setFromIK(joint_model_group, controller_pose_left, attempts, timeout);
+        bool found_ik = kinematic_state->setFromIK(joint_model_group, controller_pose, attempts, timeout);
 
         // Now, we can print out the IK solution (if found):
         if (found_ik)
@@ -112,28 +145,31 @@ class DualArmTeleop
         }
 
         // Gripper control
+
+        assert(msg.controllers[controller].joystick.axes.size() == 3);
+
         victor_hardware_interface::Robotiq3FingerActuatorCommand scissor;
         scissor.speed = 1.0;
         scissor.force = 1.0;
-        scissor.position = .5 * (1 - *(msg.controllers[i].joystick.axes.begin() + 0));
+        scissor.position = .5 * (1 - msg.controllers[controller].joystick.axes[0]);
 
         victor_hardware_interface::Robotiq3FingerActuatorCommand finger_a;
         finger_a.speed = 1.0;
         finger_a.force = 1.0;
-        finger_a.position = *(msg.controllers[i].joystick.axes.begin() + 2);
+        finger_a.position = msg.controllers[controller].joystick.axes[2];
 
         victor_hardware_interface::Robotiq3FingerActuatorCommand finger_b;
         finger_b.speed = 1.0;
         finger_b.force = 1.0;
-        finger_b.position = *(msg.controllers[i].joystick.axes.begin() + 2);
+        finger_b.position = msg.controllers[controller].joystick.axes[2];
 
         victor_hardware_interface::Robotiq3FingerActuatorCommand finger_c;
         finger_c.speed = 1.0;
         finger_c.force = 1.0;
-        finger_c.position = *(msg.controllers[i].joystick.axes.begin() + 2);
+        finger_c.position = msg.controllers[controller].joystick.axes[2];
 
         char info[60];
-        sprintf(info, "Controller: %i Scissor: %f Finger: %f", i, scissor.position, finger_a.position);
+        sprintf(info, "Controller: %i Scissor: %f Finger: %f", controller, scissor.position, finger_a.position);
         ROS_INFO("%s", info);
 
         victor_hardware_interface::Robotiq3FingerCommand msg_out_gripper;
@@ -142,7 +178,7 @@ class DualArmTeleop
         msg_out_gripper.finger_b_command = finger_b;
         msg_out_gripper.finger_c_command = finger_c;
 
-        if (i == 0)
+        if (controller == 0)
         {
           pub_left_gripper.publish(msg_out_gripper);
         }
@@ -158,6 +194,9 @@ class DualArmTeleop
     ros::Publisher pub_left_gripper;
     ros::Publisher pub_right_gripper;
     ros::Subscriber sub;
+
+    bool initialized = false;
+    Eigen::Affine3d initialPoses[2];
 
     // robot_model_loader::RobotModelLoader* robot_model_load;
     robot_model::RobotModelPtr kinematic_model;
