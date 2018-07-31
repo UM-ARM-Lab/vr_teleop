@@ -81,7 +81,7 @@ class DualArmTeleop
     DualArmTeleop()
     {
       controller_transform <<
-              1, 0, 0, 0,
+              -1, 0, 0, 0,
               0, -1, 0, 0,
               0, 0, -1, 0,
               0, 0, 0, 1;
@@ -110,19 +110,13 @@ class DualArmTeleop
 
         victor_arms[arm].ee_start_pose = victor_arms[arm].kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group_name + "_link_7");
 
-        victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(victor_arms[arm].joint_model_group_name + "/msg_out_motion", 10);
+        victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(victor_arms[arm].joint_model_group_name + "/motion_command", 10);
         victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
       }
     }
 
     void callback(vive_msgs::ViveSystem msg)
     {
-      // Resize tracked controller to match controller message size
-      if (controllers.size() != msg.controllers.size())
-      {
-        controllers.resize(msg.controllers.size());
-      }
-
       for (int arm = 0; arm < 2; ++arm)
       {
         victor_arms[arm].enabled = false;
@@ -133,7 +127,6 @@ class DualArmTeleop
       for (int controller = 0; controller < msg.controllers.size(); ++controller)
       {
         int controller_id = msg.controllers[controller].id;
-        controllers[controller].id = controller_id;
 
         bool assigned = false;
         for (int arm = 0; arm < 2; ++arm)
@@ -161,41 +154,36 @@ class DualArmTeleop
 
       for (int arm = 0; arm < 2; ++arm)
       {
-        victor_arm victor_arm = victor_arms[arm];
-        if (!victor_arm.enabled) continue;
-
-        vive_msgs::Controller msg_controller = msg.controllers[victor_arm.assigned_controller_index];
-
-        for (int i = 0; i < msg.controllers.size(); ++i)
+        if (!victor_arms[arm].enabled)
         {
-          if (controllers[i].id == victor_arm.assigned_controller_id)
-          {
-            controller = controllers[i];
-          }
+          victor_arms[arm].initialized = false;
+          continue;
         }
 
+        vive_msgs::Controller msg_controller = msg.controllers[victor_arms[arm].assigned_controller_index];
+
         // Reset frame when button is pressed
-        if (msg_controller.joystick.buttons[0] == 2 || !victor_arm.initialized)
+        if (msg_controller.joystick.buttons[0] == 2 || !victor_arms[arm].initialized)
         {
           // Controller frame
-          victor_arm.controller_start_pose = /*controller_transform * */getTrackedPose(msg_controller.posestamped.pose);
-          victor_arm.initialized = true;
+          victor_arms[arm].controller_start_pose = /*controller_transform * */getTrackedPose(msg_controller.posestamped.pose);
+          victor_arms[arm].initialized = true;
         }
 
         // A(base-reset) = B(reset-controller) * C(base-controller)
-        Eigen::Affine3d relative_pose = victor_arm.ee_start_pose * (/*controller_transform * */getTrackedPose(msg_controller.posestamped.pose)).inverse() * victor_arm.controller_start_pose;
+        Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * (/*controller_transform * */getTrackedPose(msg_controller.posestamped.pose)).inverse() * victor_arms[arm].controller_start_pose;
 
         // Compute IK solution
         victor_hardware_interface::MotionCommand msg_out_motion;
 
         std::size_t attempts = 10;
         double timeout = 0.1;
-        bool found_ik = victor_arm.kinematic_state->setFromIK(victor_arm.joint_model_group, relative_pose, attempts, timeout);
+        bool found_ik = victor_arms[arm].kinematic_state->setFromIK(victor_arms[arm].joint_model_group, relative_pose, attempts, timeout);
 
         if (found_ik)
         {
           std::vector<double> joint_values;
-          victor_arm.kinematic_state->copyJointGroupPositions(victor_arm.joint_model_group, joint_values);
+          victor_arms[arm].kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
 
           msg_out_motion.joint_position.joint_1 = joint_values[0];
           msg_out_motion.joint_position.joint_2 = joint_values[1];
@@ -249,7 +237,7 @@ class DualArmTeleop
         tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/relative_pose"));
 
         tf::Transform transform2;
-        tf::poseEigenToTF(victor_arm.controller_start_pose, transform2);
+        tf::poseEigenToTF(victor_arms[arm].controller_start_pose, transform2);
         tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/reset_pose"));
 
         tf::Transform transform3;
