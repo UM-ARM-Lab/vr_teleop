@@ -48,21 +48,9 @@
 #include "victor_hardware_interface/MotionCommand.h"
 #include "victor_hardware_interface/Robotiq3FingerCommand.h"
 
-// Transform broadcaster
+// TF
 #include <tf/transform_broadcaster.h>
-
-// TF to Eigen
 #include "tf_conversions/tf_eigen.h"
-
-struct vive_controller
-{
-  vive_controller() : initialized(false) {}
-
-  bool initialized;
-
-  int id;
-  Eigen::Affine3d base_pose;
-};
 
 struct victor_arm
 {
@@ -71,8 +59,20 @@ struct victor_arm
   bool enabled;
   bool initialized;
 
+  int assigned_controller_index;
   int assigned_controller_id;
   Eigen::Affine3d ee_start_pose;
+  Eigen::Affine3d controller_start_pose;
+
+  // State publishers
+  ros::Publisher pub_arm;
+  ros::Publisher pub_gripper;
+
+  // Kinematics
+  std::string joint_model_group_name;
+  robot_state::RobotStatePtr kinematic_state;
+  robot_state::JointModelGroup* joint_model_group;
+  std::vector<std::string> joint_names;
 };
 
 class DualArmTeleop
@@ -80,99 +80,122 @@ class DualArmTeleop
   public:
     DualArmTeleop()
     {
-      // Initialize ROS message handlers
-      pub_left_arm = n.advertise<victor_hardware_interface::MotionCommand>("left_arm/msg_out_motion", 10);
-      pub_right_arm = n.advertise<victor_hardware_interface::MotionCommand>("right_arm/msg_out_motion", 10);
-      pub_left_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>("left_arm/gripper_command", 10);
-      pub_right_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>("right_arm/gripper_command", 10);
+      controller_transform <<
+              1, 0, 0, 0,
+              0, -1, 0, 0,
+              0, 0, -1, 0,
+              0, 0, 0, 1;
 
       sub = n.subscribe<vive_msgs::ViveSystem>("vive", 10, &DualArmTeleop::callback, this);
 
-      // Initialize Victor kinematics
-      robot_model_loader::RobotModelLoader robot_model_load_temp("robot_description");
-      kinematic_model = robot_model_load_temp.getModel();
-      joint_model_group = kinematic_model->getJointModelGroup("left_arm");
-      joint_names = joint_model_group->getVariableNames();
-      kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
+      // Initialize victor kinematic model
+      robot_model_loader::RobotModelLoader robot_model_load("robot_description");
+      kinematic_model = robot_model_load.getModel();
 
       ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
 
-      // Enforce joint limits
-      kinematic_state->setToDefaultValues();
-      kinematic_state->enforceBounds();
+      // Initialize victor arms
+      victor_arms[0].joint_model_group_name = "left_arm";
+      victor_arms[1].joint_model_group_name = "right_arm";
+
+      for (int arm = 0; arm < 2; ++arm)
+      {
+        victor_arms[arm].joint_model_group = kinematic_model->getJointModelGroup(victor_arms[arm].joint_model_group_name);
+        victor_arms[arm].joint_names = victor_arms[arm].joint_model_group->getVariableNames();
+        victor_arms[arm].kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
+
+        // Enforce joint limits
+        victor_arms[arm].kinematic_state->setToDefaultValues();
+        victor_arms[arm].kinematic_state->enforceBounds();
+
+        victor_arms[arm].ee_start_pose = victor_arms[arm].kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group_name + "_link_7");
+
+        victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(victor_arms[arm].joint_model_group_name + "/msg_out_motion", 10);
+        victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
+      }
     }
 
     void callback(vive_msgs::ViveSystem msg)
     {
+      // Resize tracked controller to match controller message size
       if (controllers.size() != msg.controllers.size())
       {
         controllers.resize(msg.controllers.size());
       }
 
-      // Gather information about controllers
-      std::vector<int> active_IDs;
-
-      for (int controller = 0; controller < msg.controllers.size(); ++controller) {
+      for (int arm = 0; arm < 2; ++arm)
       {
-        if ()
-        active_IDs.push_back(msg.controllers[controller].id);
+        victor_arms[arm].enabled = false;
       }
 
-      for (int arm = 0; arm < victor_arms.size(); ++arm) {
+      // Gather information about controllers
+      std::vector<int> unassigned_controller_indices;
+      for (int controller = 0; controller < msg.controllers.size(); ++controller)
       {
-        if (!victor_arms[arm].enabled) {
-          // Assign the arm a controller
-          victor_arms[arm].assigned_controller_id = active_IDs[0]
+        int controller_id = msg.controllers[controller].id;
+        controllers[controller].id = controller_id;
+
+        bool assigned = false;
+        for (int arm = 0; arm < 2; ++arm)
+        {
+          if (victor_arms[arm].assigned_controller_id == controller_id)
+          {
+            victor_arms[arm].enabled = true;
+            assigned = true;
+            victor_arms[arm].assigned_controller_index = controller;
+          }
+        }
+        if (!assigned) unassigned_controller_indices.push_back(controller);
+      }
+
+      for (int arm = 0; arm < 2; ++arm)
+      {
+        if (!victor_arms[arm].enabled)
+        {
+          victor_arms[arm].assigned_controller_index = unassigned_controller_indices.back();
+          victor_arms[arm].assigned_controller_id = msg.controllers[victor_arms[arm].assigned_controller_index].id;
+          unassigned_controller_indices.pop_back();
+          victor_arms[arm].enabled = true;
         }
       }
 
-      // Decide/assign controllers to arms
-
-
-      // Loop through left/right controller array
-      for (int arm = 0; arm < victor_arms.size(); ++arm) {
+      for (int arm = 0; arm < 2; ++arm)
+      {
         victor_arm victor_arm = victor_arms[arm];
         if (!victor_arm.enabled) continue;
 
-        vive_controller controller = controllers[victor_arm.assigned_controller_id];
-        vive_msgs::Controller msg_controller = msg.controllers[victor_arm.assigned_controller_id];
+        vive_msgs::Controller msg_controller = msg.controllers[victor_arm.assigned_controller_index];
 
-        
+        for (int i = 0; i < msg.controllers.size(); ++i)
+        {
+          if (controllers[i].id == victor_arm.assigned_controller_id)
+          {
+            controller = controllers[i];
+          }
+        }
+
         // Reset frame when button is pressed
-        if (msg_controller.joystick.buttons[0] == 2 || !controllers[arm].initialized) {
+        if (msg_controller.joystick.buttons[0] == 2 || !victor_arm.initialized)
+        {
           // Controller frame
-          controllers[controller].base_pose = controller_transform * getTrackedPose(msg_controller.posestamped.pose);
-          controllers[controller].initialized = true;
-
-          victor_arms[arm] = kinematic_state->getGlobalLinkTransform("victor_left_arm_link_7");
+          victor_arm.controller_start_pose = /*controller_transform * */getTrackedPose(msg_controller.posestamped.pose);
+          victor_arm.initialized = true;
         }
 
         // A(base-reset) = B(reset-controller) * C(base-controller)
-        Eigen::Affine3d relative_pose = victor_arm.ee_start_pose * getTrackedPose(controller_transform * msg_controller.posestamped.pose).inverse() * controllers[controller].base_pose;
-
-        tf::Transform transform1;
-        tf::poseEigenToTF(relative_pose, transform1);
-        tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", "vive_left_hand/relative_pose"));
-
-        tf::Transform transform2;
-        tf::poseEigenToTF(controllers[controller].base_pose, transform2);
-        tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", "vive_left_hand/reset_pose"));
-
-        tf::Transform transform3;
-        tf::poseEigenToTF(getTrackedPose(msg_controller.posestamped.pose), transform3);
-        tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", "vive_left_hand/global_pose"));
+        Eigen::Affine3d relative_pose = victor_arm.ee_start_pose * (/*controller_transform * */getTrackedPose(msg_controller.posestamped.pose)).inverse() * victor_arm.controller_start_pose;
 
         // Compute IK solution
         victor_hardware_interface::MotionCommand msg_out_motion;
 
         std::size_t attempts = 10;
         double timeout = 0.1;
-        bool found_ik = kinematic_state->setFromIK(joint_model_group, relative_pose, attempts, timeout);
+        bool found_ik = victor_arm.kinematic_state->setFromIK(victor_arm.joint_model_group, relative_pose, attempts, timeout);
 
         if (found_ik)
         {
           std::vector<double> joint_values;
-          kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
+          victor_arm.kinematic_state->copyJointGroupPositions(victor_arm.joint_model_group, joint_values);
 
           msg_out_motion.joint_position.joint_1 = joint_values[0];
           msg_out_motion.joint_position.joint_2 = joint_values[1];
@@ -181,6 +204,8 @@ class DualArmTeleop
           msg_out_motion.joint_position.joint_5 = joint_values[4];
           msg_out_motion.joint_position.joint_6 = joint_values[5];
           msg_out_motion.joint_position.joint_7 = joint_values[6];
+
+          ROS_INFO("Found IK solution");
         }
         else
         {
@@ -213,17 +238,23 @@ class DualArmTeleop
         msg_out_gripper.finger_a_command = finger_a;
         msg_out_gripper.finger_b_command = finger_b;
         msg_out_gripper.finger_c_command = finger_c;
+        
+        // Publish state messages
+        victor_arms[arm].pub_arm.publish(msg_out_motion);
+        victor_arms[arm].pub_gripper.publish(msg_out_gripper);
 
-        if (arm == 0)
-        {
-          pub_left_arm.publish(msg_out_motion);
-          pub_left_gripper.publish(msg_out_gripper);
-        }
-        else
-        {
-          pub_right_arm.publish(msg_out_motion);
-          pub_right_gripper.publish(msg_out_gripper);
-        }
+        // Display rviz poses
+        tf::Transform transform1;
+        tf::poseEigenToTF(relative_pose, transform1);
+        tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/relative_pose"));
+
+        tf::Transform transform2;
+        tf::poseEigenToTF(victor_arm.controller_start_pose, transform2);
+        tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/reset_pose"));
+
+        tf::Transform transform3;
+        tf::poseEigenToTF(getTrackedPose(msg_controller.posestamped.pose), transform3);
+        tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/global_pose"));
       }
     }
     
@@ -258,26 +289,14 @@ class DualArmTeleop
     
   private:
     ros::NodeHandle n;
-    ros::Publisher pub_left_gripper;
-    ros::Publisher pub_right_gripper;
-    ros::Publisher pub_left_arm;
     ros::Subscriber sub;
     tf::TransformBroadcaster tf_broadcaster;
-
+    
     robot_model::RobotModelPtr kinematic_model;
-    robot_state::RobotStatePtr kinematic_state;
-    robot_state::JointModelGroup* joint_model_group;
-    std::vector<std::string> joint_names;
 
-    std::vector<vive_controller> controllers;
-    std::vector<victor_arm> victor_arms;
+    victor_arm victor_arms[2];
 
-    static Eigen::Matrix4d controller_transform(
-      1, 0, 0, 0,
-      0, -1, 0, 0,
-      0, 0, -1, 0,
-      0, 0, 0, 1
-    );
+    Eigen::Matrix4d controller_transform;
 };
 
 int main(int argc, char** argv)
