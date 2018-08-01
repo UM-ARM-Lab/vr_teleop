@@ -54,7 +54,7 @@
 
 struct victor_arm
 {
-  victor_arm() : enabled(false), initialized(false) {}
+  victor_arm() : enabled(false), initialized(false) , ee_start_pose(Eigen::Affine3d::Identity()) {}
 
   bool enabled;
   bool initialized;
@@ -108,7 +108,13 @@ class DualArmTeleop
         victor_arms[arm].kinematic_state->setToDefaultValues();
         victor_arms[arm].kinematic_state->enforceBounds();
 
-        victor_arms[arm].ee_start_pose = victor_arms[arm].kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group_name + "_link_7");
+        victor_arms[arm].ee_start_pose.translation() = victor_arms[arm].kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group_name + "_link_7").translation();
+        //victor_arms[arm].ee_start_pose.linear() = victor_arms[arm].kinematic_state->getGlobalLinkTransform("victor_root").linear();
+        Eigen::Quaterniond rot = Eigen::Quaterniond::Identity();
+        rot.setFromTwoVectors(Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 1, 0));
+        victor_arms[arm].ee_start_pose.rotate(rot);
+        rot.setFromTwoVectors(Eigen::Vector3d(0, 1, 0), Eigen::Vector3d(0, 0, 1));
+        victor_arms[arm].ee_start_pose.rotate(rot);
 
         victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(victor_arms[arm].joint_model_group_name + "/motion_command", 10);
         victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
@@ -166,18 +172,18 @@ class DualArmTeleop
         if (msg_controller.joystick.buttons[0] == 2 || !victor_arms[arm].initialized)
         {
           // Controller frame
-          victor_arms[arm].controller_start_pose = /*controller_transform * */getTrackedPose(msg_controller.posestamped.pose);
+          victor_arms[arm].controller_start_pose = getTrackedPose(msg_controller.posestamped.pose);
           victor_arms[arm].initialized = true;
         }
 
         // A(base-reset) = B(reset-controller) * C(base-controller)
-        Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * (/*controller_transform * */getTrackedPose(msg_controller.posestamped.pose)).inverse() * victor_arms[arm].controller_start_pose;
+        Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * getTrackedPose(msg_controller.posestamped.pose).inverse() * victor_arms[arm].controller_start_pose;
 
         // Compute IK solution
         victor_hardware_interface::MotionCommand msg_out_motion;
 
         std::size_t attempts = 10;
-        double timeout = 0.1;
+        double timeout = 0.01;
         bool found_ik = victor_arms[arm].kinematic_state->setFromIK(victor_arms[arm].joint_model_group, relative_pose, attempts, timeout);
 
         if (found_ik)
