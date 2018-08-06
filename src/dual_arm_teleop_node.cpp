@@ -81,11 +81,7 @@ class DualArmTeleop
   public:
     DualArmTeleop()
     {
-      controller_transform <<
-              -1, 0, 0, 0,
-              0, -1, 0, 0,
-              0, 0, -1, 0,
-              0, 0, 0, 1;
+      transform_lighthouse_to_world = Eigen::Affine3d::Identity();
 
       sub = n.subscribe<vive_msgs::ViveSystem>("vive", 10, &DualArmTeleop::callback, this);
 
@@ -111,6 +107,7 @@ class DualArmTeleop
 
         victor_arms[arm].ee_start_pose.translation() = kinematic_state->getGlobalLinkTransform(
                 "victor_" + victor_arms[arm].joint_model_group_name + "_link_7").translation();
+        //victor_arms[arm].ee_start_pose = transform_lighthouse_to_world * victor_arms[arm].ee_start_pose;
         Eigen::Quaterniond rot = Eigen::Quaterniond::Identity();
         rot.setFromTwoVectors(Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 1, 0));
         victor_arms[arm].ee_start_pose.rotate(rot);
@@ -182,6 +179,7 @@ class DualArmTeleop
         }
 
         // A(base-reset) = B(reset-controller) * C(base-controller)
+        //Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * (transform_lighthouse_to_world * getTrackedPose(msg_controller.posestamped.pose)).inverse() * victor_arms[arm].controller_start_pose;
         Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * getTrackedPose(msg_controller.posestamped.pose).inverse() * victor_arms[arm].controller_start_pose;
 
         // Compute IK solution
@@ -300,7 +298,7 @@ class DualArmTeleop
 
     victor_arm victor_arms[2];
 
-    Eigen::Matrix4d controller_transform;
+    Eigen::Affine3d transform_lighthouse_to_world;
 };
 
 int main(int argc, char** argv)
