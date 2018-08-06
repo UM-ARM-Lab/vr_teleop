@@ -44,5 +44,5 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
 `~/.steam/steam/ubuntu12_32/steam-runtime/run.sh devel/lib/dual_arm_teleop/dual_arm_teleop_node`
 
 ## Troubleshooting
-If SteamVR is having trouble detecting the Vive headset, try switching on/off the SteamVR beta
-found by right clicking SteamVR > Properties > Betas >  Select the beta you would like to opt into > beta - SteamVR Beta Update
+* If SteamVR is having trouble detecting the Vive headset, try switching on/off the SteamVR beta
+   1. found by right clicking SteamVR > Properties > Betas >  Select the beta you would like to opt into > beta - SteamVR Beta Update
