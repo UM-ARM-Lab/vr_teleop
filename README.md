@@ -1,2 +1,2 @@
-# vive_teleop
+# Vive Teleop
 Vive teleop control for Victor
