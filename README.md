@@ -26,9 +26,12 @@ Vive teleop control for Victor.
    [SteamVR for Linux setup](https://github.com/ValveSoftware/SteamVR-for-Linux)  
    Note: This node was tested on nvidia-390 drivers.
    
-6. Clone kuka_iiwa_interface into catkin workspace
-7. Clone arc_utilities into catkin workspace
-8. Clone this package into catkin workspace
+3. Clone kuka_iiwa_interface into catkin workspace  
+   `git clone https://github.com/UM-ARM-Lab/kuka_iiwa_interface.git`  
+4. Clone arc_utilities into catkin_workspace  
+   `git clone https://github.com/UM-ARM-Lab/arc_utilities.git`  
+5. Clone this repository into catkin_workspace
+   `git clone https://github.com/UM-ARM-Lab/vive_teleop.git`
 9. Build the entire catkin workspace
 
 ## Usage
