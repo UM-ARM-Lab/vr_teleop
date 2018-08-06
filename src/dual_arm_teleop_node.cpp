@@ -38,10 +38,10 @@
 
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/robot_model/robot_model.h> 
-#include <moveit/robot_state/robot_state.h>
+#include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/conversions.h>
-#include <moveit_msgs/DisplayTrajectory.h>
+#include <moveit/robot_state/robot_state.h>
+#include <moveit_msgs/DisplayRobotState.h>
 
 // Vive
 #include "vive_msgs/ViveSystem.h"
@@ -53,8 +53,6 @@
 // TF
 #include <tf/transform_broadcaster.h>
 #include "tf_conversions/tf_eigen.h"
-
-#include <sensor_msgs/JointState.h>
 
 struct victor_arm
 {
@@ -74,7 +72,6 @@ struct victor_arm
 
   // Kinematics
   std::string joint_model_group_name;
-  robot_state::RobotStatePtr kinematic_state;
   robot_state::JointModelGroup* joint_model_group;
   std::vector<std::string> joint_names;
 };
@@ -98,6 +95,11 @@ class DualArmTeleop
 
       ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
 
+      kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
+      // Enforce joint limits
+      kinematic_state->setToDefaultValues();
+      kinematic_state->enforceBounds();
+
       // Initialize victor arms
       victor_arms[0].joint_model_group_name = "left_arm";
       victor_arms[1].joint_model_group_name = "right_arm";
@@ -106,15 +108,9 @@ class DualArmTeleop
         victor_arms[arm].joint_model_group = kinematic_model->getJointModelGroup(
                 victor_arms[arm].joint_model_group_name);
         victor_arms[arm].joint_names = victor_arms[arm].joint_model_group->getVariableNames();
-        victor_arms[arm].kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
 
-        // Enforce joint limits
-        victor_arms[arm].kinematic_state->setToDefaultValues();
-        victor_arms[arm].kinematic_state->enforceBounds();
-
-        victor_arms[arm].ee_start_pose.translation() = victor_arms[arm].kinematic_state->getGlobalLinkTransform(
+        victor_arms[arm].ee_start_pose.translation() = kinematic_state->getGlobalLinkTransform(
                 "victor_" + victor_arms[arm].joint_model_group_name + "_link_7").translation();
-        //victor_arms[arm].ee_start_pose.linear() = victor_arms[arm].kinematic_state->getGlobalLinkTransform("victor_root").linear();
         Eigen::Quaterniond rot = Eigen::Quaterniond::Identity();
         rot.setFromTwoVectors(Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 1, 0));
         victor_arms[arm].ee_start_pose.rotate(rot);
@@ -126,22 +122,12 @@ class DualArmTeleop
         victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
                 victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
 
-        pubRviz = n.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1);
+        pub_rviz = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
       }
     }
 
     void callback(vive_msgs::ViveSystem msg)
     {
-      robot_state::RobotState robot_state(kinematic_model);
-      moveit_msgs::DisplayTrajectory display_trajectory;
-      moveit_msgs::RobotTrajectory robot_trajectory;
-      sensor_msgs::JointState joint_state;
-
-      moveit::core::robotStateToJointStateMsg(robot_state, joint_state);
-      moveit::core::robotStateToRobotStateMsg(robot_state, display_trajectory.trajectory_start);
-      display_trajectory.model_id = kinematic_model->getName();
-      robot_trajectory.joint_trajectory.points.resize(1);
-
       for (int arm = 0; arm < 2; ++arm)
       {
         victor_arms[arm].enabled = false;
@@ -200,24 +186,14 @@ class DualArmTeleop
 
         // Compute IK solution
         victor_hardware_interface::MotionCommand msg_out_motion;
-        //moveit_msgs::DisplayTrajectory msg_out_motion;
 
         std::size_t attempts = 10;
         double timeout = 0.01;
-        bool found_ik = victor_arms[arm].kinematic_state->setFromIK(victor_arms[arm].joint_model_group, relative_pose, attempts, timeout);
+        bool found_ik = kinematic_state->setFromIK(victor_arms[arm].joint_model_group, relative_pose, attempts, timeout);
 
         if (found_ik) {
-          for (std::string name : joint_state.name)
-          {
-            robot_trajectory.joint_trajectory.joint_names.push_back(name);
-          }
-          for (float f : joint_state.position)
-          {
-            robot_trajectory.joint_trajectory.points[0].positions.push_back(f);
-          }
-
           std::vector<double> joint_values;
-          victor_arms[arm].kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
+          kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
 
           msg_out_motion.joint_position.joint_1 = joint_values[0];
           msg_out_motion.joint_position.joint_2 = joint_values[1];
@@ -279,9 +255,9 @@ class DualArmTeleop
         tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/global_pose"));
       }
 
-      robot_trajectory.joint_trajectory.points[0].time_from_start = ros::Duration(0.0);
-      display_trajectory.trajectory.push_back(robot_trajectory);
-      pubRviz.publish(display_trajectory);
+      moveit_msgs::DisplayRobotState display_robot_state;
+      robot_state::robotStateToRobotStateMsg(*kinematic_state, display_robot_state.state);
+      pub_rviz.publish(display_robot_state);
     }
     
     Eigen::Vector3d getTrackedPosition(geometry_msgs::Point point)
@@ -317,9 +293,10 @@ class DualArmTeleop
     ros::NodeHandle n;
     ros::Subscriber sub;
     tf::TransformBroadcaster tf_broadcaster;
-    ros::Publisher pubRviz;
+    ros::Publisher pub_rviz;
 
     robot_model::RobotModelPtr kinematic_model;
+  robot_state::RobotStatePtr kinematic_state;
 
     victor_arm victor_arms[2];
 
