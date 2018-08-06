@@ -1,23 +1,23 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="2">
   <name>openvr_driver</name>
   <version>0.0.0</version>
-  <description>Publishes values from the Vive system over ROS2</description>
+  <description>Publishes values from the Vive system over ROS</description>
   <maintainer email="danieljnchen@gmail.com">Daniel Chen</maintainer>
-  <license>TODO: Apache 2.0</license>
+  <license>TODO</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>rclcpp</depend>
-  <depend>tf2</depend>
-  <depend>sensor_msgs</depend>
-  <depend>vive_msgs</depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>vive_msgs</build_depend>
 
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <build_export_depend>pluginlib</build_export_depend>
+  <build_export_depend>vive_msgs</build_export_depend>
+
+  <exec_depend>pluginlib</exec_depend>
+  <exec_depend>vive_msgs</exec_depend>
 
   <export>
-    <build_type>ament_cmake</build_type>
+
   </export>
 </package>

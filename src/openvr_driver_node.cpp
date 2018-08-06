@@ -1,17 +1,16 @@
+#include <ros/ros.h>
+#include <openvr.h>
+
 #include <chrono>
 #include <cstdio>
 #include <memory>
 #include <string>
 #include <cmath>
 
-#include <openvr.h>
-#include "rclcpp/rclcpp.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
-#include "vive_msgs/msg/vive_system.hpp"
-#include "tf2/LinearMath/Matrix3x3.h"
-#include "tf2/LinearMath/Quaternion.h"
-
-using namespace std::chrono_literals;
+#include <vive_msgs/ViveSystem.h>
 
 struct Device {
   int index;
@@ -73,104 +72,7 @@ void catalogControllers(Device* devices, bool printOutput) {
   }
 }
 
-class Talker : public rclcpp::Node {
-public:
-  explicit Talker(const std::string & topic_name) : Node("talker") {
-    msg_ = std::make_shared<vive_msgs::msg::ViveSystem>();
-
-    auto publish_message = [this]() -> void {
-
-      if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - update >= 1000) {
-        catalogDevices(ivrSystem, devices, false);
-        catalogControllers(devices, false);
-        update += 1000;
-      }
-      
-      for (int controller = 0; controller < controllerIndices.size(); ++controller) {
-        if (msg_->controllers.size() != controllerIndices.size()) {
-          msg_->controllers.resize(controllerIndices.size());
-        }
-        while (msg_->controllers[controller].joystick.buttons.size() < 4) {
-          msg_->controllers[controller].joystick.buttons.push_back(0);
-        }
-
-        while (msg_->controllers[controller].joystick.axes.size() < 3) {
-          msg_->controllers[controller].joystick.axes.push_back(0.0);
-        }
-
-        vr::VRControllerState_t state;
-        vr::TrackedDevicePose_t pose;
-
-        ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseStanding, controllerIndices[controller], &state, sizeof(state), &pose);
-
-        // Buttons
-        for (int button = 0; button < 4; ++button) {
-          if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
-            msg_->controllers[controller].joystick.buttons[button] = Button_Pressed;
-          } else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
-              msg_->controllers[controller].joystick.buttons[button] = Button_Touched;
-          } else {
-            msg_->controllers[controller].joystick.buttons[button] = Button_Released;
-          }
-        }
-        
-        // Axis
-        msg_->controllers[controller].joystick.axes[0] = state.rAxis[0].x;
-        msg_->controllers[controller].joystick.axes[1] = state.rAxis[0].y;
-        msg_->controllers[controller].joystick.axes[2] = state.rAxis[1].x;
-
-        // Position
-        msg_->controllers[controller].posestamped.pose.position.x = pose.mDeviceToAbsoluteTracking.m[0][3];
-        msg_->controllers[controller].posestamped.pose.position.y = pose.mDeviceToAbsoluteTracking.m[1][3];
-        msg_->controllers[controller].posestamped.pose.position.z = pose.mDeviceToAbsoluteTracking.m[2][3];
-        
-        // Orientation
-        tf2::Matrix3x3 rotMatrix;
-        tf2::Quaternion quaternion;
-
-        rotMatrix.setValue(pose.mDeviceToAbsoluteTracking.m[0][0], pose.mDeviceToAbsoluteTracking.m[0][1], pose.mDeviceToAbsoluteTracking.m[0][2],
-                           pose.mDeviceToAbsoluteTracking.m[1][0], pose.mDeviceToAbsoluteTracking.m[1][1], pose.mDeviceToAbsoluteTracking.m[1][2],
-                           pose.mDeviceToAbsoluteTracking.m[2][0], pose.mDeviceToAbsoluteTracking.m[2][1], pose.mDeviceToAbsoluteTracking.m[2][2]
-        );
-
-        rotMatrix.getRotation(quaternion);
-        msg_->controllers[controller].posestamped.pose.orientation.x = quaternion.x();
-        msg_->controllers[controller].posestamped.pose.orientation.y = quaternion.y();
-        msg_->controllers[controller].posestamped.pose.orientation.z = quaternion.z();
-        msg_->controllers[controller].posestamped.pose.orientation.w = quaternion.w();
-
-        // Fill PoseStamped header
-        msg_->controllers[controller].posestamped.header.stamp = rclcpp::Node::now();
-        msg_->controllers[controller].posestamped.header.frame_id = "vive_base";
-
-        msg_->controllers[controller].id = controllerIndices[controller];
-      }
-
-		  pub_->publish(msg_);
-    };
-
-    rmw_qos_profile_t custom_qos_profile = rmw_qos_profile_default;
-    custom_qos_profile.depth = 7;
-    pub_ = this->create_publisher<vive_msgs::msg::ViveSystem>(topic_name, custom_qos_profile);
-
-    // Update rate of openvr motion tracking is ~250Hz
-    timer_ = this->create_wall_timer(10ms, publish_message);
-  }
-
-private:
-  size_t count_ = 1;
-  std::shared_ptr<vive_msgs::msg::ViveSystem> msg_;
-  rclcpp::Publisher<vive_msgs::msg::ViveSystem>::SharedPtr pub_;
-  rclcpp::TimerBase::SharedPtr timer_;
-
-  int64_t update = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-};
-
 int main(int argc, char * argv[]) {
-  rclcpp::init(argc, argv);
-
-  auto node = std::make_shared<Talker>("vive");
-
   if (!vr::VR_IsHmdPresent()) {
     std::cout << "No HMD was found in the system, quitting app" << std::endl;
     return -1;
@@ -203,7 +105,84 @@ int main(int argc, char * argv[]) {
       catalogDevices(ivrSystem, devices, true);
       catalogControllers(devices, true);
     } else if (input == "start") {
-      rclcpp::spin(node);
+      ros::init(argc, argv, "openvr_driver_node");
+
+      int64_t update = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+      ros::NodeHandle n;
+      ros::Publisher pub = n.advertise<vive_msgs::ViveSystem>("vive", 10);
+
+      while (ros::ok()) {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - update >= 1000) {
+          catalogDevices(ivrSystem, devices, false);
+          catalogControllers(devices, false);
+          update += 1000;
+        }
+
+        vive_msgs::ViveSystem msg;
+
+        for (int controller = 0; controller < controllerIndices.size(); ++controller) {
+          if (msg.controllers.size() != controllerIndices.size()) {
+            msg.controllers.resize(controllerIndices.size());
+          }
+          while (msg.controllers[controller].joystick.buttons.size() < 4) {
+            msg.controllers[controller].joystick.buttons.push_back(0);
+          }
+
+          while (msg.controllers[controller].joystick.axes.size() < 3) {
+            msg.controllers[controller].joystick.axes.push_back(0.0);
+          }
+
+          vr::VRControllerState_t state;
+          vr::TrackedDevicePose_t pose;
+
+          ivrSystem->GetControllerStateWithPose(vr::TrackingUniverseStanding, controllerIndices[controller], &state, sizeof(state), &pose);
+
+          // Buttons
+          for (int button = 0; button < 4; ++button) {
+            if ((state.ulButtonPressed & buttonBitmasks[button]) != 0) {
+              msg.controllers[controller].joystick.buttons[button] = Button_Pressed;
+            } else if ((state.ulButtonTouched & buttonBitmasks[button]) != 0) {
+              msg.controllers[controller].joystick.buttons[button] = Button_Touched;
+            } else {
+              msg.controllers[controller].joystick.buttons[button] = Button_Released;
+            }
+          }
+
+          // Axis
+          msg.controllers[controller].joystick.axes[0] = state.rAxis[0].x;
+          msg.controllers[controller].joystick.axes[1] = state.rAxis[0].y;
+          msg.controllers[controller].joystick.axes[2] = state.rAxis[1].x;
+
+          // Position
+          msg.controllers[controller].posestamped.pose.position.x = pose.mDeviceToAbsoluteTracking.m[0][3];
+          msg.controllers[controller].posestamped.pose.position.y = pose.mDeviceToAbsoluteTracking.m[1][3];
+          msg.controllers[controller].posestamped.pose.position.z = pose.mDeviceToAbsoluteTracking.m[2][3];
+
+          // Orientation
+          tf2::Matrix3x3 rotation_matrix;
+          tf2::Quaternion quaternion;
+
+          rotation_matrix.setValue(pose.mDeviceToAbsoluteTracking.m[0][0], pose.mDeviceToAbsoluteTracking.m[0][1], pose.mDeviceToAbsoluteTracking.m[0][2],
+                             pose.mDeviceToAbsoluteTracking.m[1][0], pose.mDeviceToAbsoluteTracking.m[1][1], pose.mDeviceToAbsoluteTracking.m[1][2],
+                             pose.mDeviceToAbsoluteTracking.m[2][0], pose.mDeviceToAbsoluteTracking.m[2][1], pose.mDeviceToAbsoluteTracking.m[2][2]
+          );
+
+          rotation_matrix.getRotation(quaternion);
+          msg.controllers[controller].posestamped.pose.orientation.x = quaternion.x();
+          msg.controllers[controller].posestamped.pose.orientation.y = quaternion.y();
+          msg.controllers[controller].posestamped.pose.orientation.z = quaternion.z();
+          msg.controllers[controller].posestamped.pose.orientation.w = quaternion.w();
+
+          // Fill PoseStamped header
+          msg.controllers[controller].posestamped.header.stamp = ros::Time::now();
+          msg.controllers[controller].posestamped.header.frame_id = "vive_base";
+
+          msg.controllers[controller].id = controllerIndices[controller];
+        }
+        pub.publish(msg);
+      }
+
+      ros::shutdown();
     } else if (input == "exit") {
       break;
     } else if (input == "help") {
@@ -218,7 +197,6 @@ int main(int argc, char * argv[]) {
   }
   
   vr::VR_Shutdown();
-  rclcpp::shutdown();
 
   return 0;
 }
