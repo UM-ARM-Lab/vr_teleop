@@ -31,7 +31,7 @@ Vive teleop control for Victor.
 4. Clone arc_utilities into catkin_workspace  
    `git clone https://github.com/UM-ARM-Lab/arc_utilities.git`  
 5. Clone this repository into catkin_workspace
-   `git clone https://github.com/UM-ARM-Lab/vive_teleop.git`
+   `git clone https://github.com/UM-ARM-Lab/vive_teleop.git`  
 9. Build the entire catkin workspace
 
 ## Usage
