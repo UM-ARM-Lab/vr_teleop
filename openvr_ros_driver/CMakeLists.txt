@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(openvr_driver)
+project(openvr_ros_driver)
 
 # Default to C99
 #if(NOT CMAKE_C_STANDARD)

@@ -42,9 +42,10 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
 
 2. In a new terminal, run `roscore`
 3. In a new terminal, run `rviz`
-4. In a new terminal, run `rosrun victor_moveit_config demo.launch`
-5. In a new terminal, cd into the catkin workspace and run dual_arm_teleop using 
-`~/.steam/steam/ubuntu12_32/steam-runtime/run.sh devel/lib/dual_arm_teleop/dual_arm_teleop_node`
+4. In a new terminal, run openvr_ros_driver using 
+`~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vive_teleop/openvr_ros_driver/openvr_ros_driver_node`
+5. In a new terminal, run dual_arm_teleop using 
+`rosrun dual_arm_teleop dual_arm_teleop_node`
 
 ## Troubleshooting
 * If SteamVR is having trouble detecting the Vive headset, try switching on/off the SteamVR beta
