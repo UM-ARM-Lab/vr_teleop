@@ -1,8 +1,0 @@
-prefix=/home/andriym/catkin_ws/src/dual_arm_teleop/cmake-build-debug/devel
-
-Name: dual_arm_teleop
-Description: Description of dual_arm_teleop
-Version: 0.0.0
-Cflags: -I/usr/include/eigen3
-Libs: -L/home/andriym/catkin_ws/src/dual_arm_teleop/cmake-build-debug/devel/lib 
-Requires: moveit_core moveit_visual_tools moveit_ros_planning_interface
