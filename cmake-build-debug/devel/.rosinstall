@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/andriym/catkin_ws/src/dual_arm_teleop/cmake-build-debug/devel/setup.sh

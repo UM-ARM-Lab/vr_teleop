@@ -1,0 +1,13 @@
+<launch>
+  <include file="$(find victor_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <node name="dual_arm_teleop_node"
+        pkg="dual_arm_teleop"
+        type="dual_arm_teleop_node"
+        respawn="false" output="screen">
+    <rosparam command="load"
+              file="$(find victor_moveit_config)/config/kinematics.yaml"/>
+  </node>
+</launch>
