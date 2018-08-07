@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>openvr_driver</name>
+  <version>0.0.0</version>
+  <description>Publishes values from the Vive system over ROS</description>
+  <maintainer email="danieljnchen@gmail.com">Daniel Chen</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>pluginlib</build_depend>
+  <build_depend>vive_msgs</build_depend>
+
+  <build_export_depend>pluginlib</build_export_depend>
+  <build_export_depend>vive_msgs</build_export_depend>
+
+  <exec_depend>pluginlib</exec_depend>
+  <exec_depend>vive_msgs</exec_depend>
+
+  <export>
+
+  </export>
+</package>
