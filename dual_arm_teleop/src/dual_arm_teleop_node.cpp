@@ -56,15 +56,17 @@
 
 struct victor_arm
 {
-  victor_arm() : enabled(false), initialized(false) , ee_start_pose(Eigen::Affine3d::Identity()) {}
+  victor_arm() : enabled(false), initialized(false) {}
 
   bool enabled;
   bool initialized;
 
   int assigned_controller_index;
   int assigned_controller_id;
-  Eigen::Affine3d ee_start_pose;
-  Eigen::Affine3d controller_start_pose;
+  Eigen::Vector3d ee_start_translation;
+  Eigen::Quaterniond ee_start_rotation;
+  Eigen::Vector3d controller_start_translation;
+  Eigen::Quaterniond controller_start_rotation;
 
   // State publishers
   ros::Publisher pub_arm;
@@ -105,14 +107,15 @@ class DualArmTeleop
                 victor_arms[arm].joint_model_group_name);
         victor_arms[arm].joint_names = victor_arms[arm].joint_model_group->getVariableNames();
 
-        victor_arms[arm].ee_start_pose.translation() = kinematic_state->getGlobalLinkTransform(
+        victor_arms[arm].ee_start_translation = kinematic_state->getGlobalLinkTransform(
                 "victor_" + victor_arms[arm].joint_model_group_name + "_link_7").translation();
+        victor_arms[arm].ee_start_rotation = Eigen::Quaterniond::Identity();
         //victor_arms[arm].ee_start_pose = transform_lighthouse_to_world * victor_arms[arm].ee_start_pose;
-        Eigen::Quaterniond rot = Eigen::Quaterniond::Identity();
+        /*Eigen::Quaterniond rot = Eigen::Quaterniond::Identity();
         rot.setFromTwoVectors(Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 1, 0));
         victor_arms[arm].ee_start_pose.rotate(rot);
         rot.setFromTwoVectors(Eigen::Vector3d(0, 1, 0), Eigen::Vector3d(0, 0, 1));
-        victor_arms[arm].ee_start_pose.rotate(rot);
+        victor_arms[arm].ee_start_pose.rotate(rot);*/
 
         victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(
                 victor_arms[arm].joint_model_group_name + "/motion_command", 10);
@@ -174,13 +177,30 @@ class DualArmTeleop
         if (msg_controller.joystick.buttons[0] == 2 || !victor_arms[arm].initialized)
         {
           // Controller frame
-          victor_arms[arm].controller_start_pose = getTrackedPose(msg_controller.posestamped.pose);
+          victor_arms[arm].controller_start_translation = getTrackedPosition(msg_controller.posestamped.pose.position);
+          victor_arms[arm].controller_start_rotation = getTrackedRotation(msg_controller.posestamped.pose.orientation);
+          /*victor_arms[arm].ee_start_pose.translation() = kinematic_state->getGlobalLinkTransform(
+            "victor_" + victor_arms[arm].joint_model_group_name + "_link_7").translation();*/
           victor_arms[arm].initialized = true;
         }
 
         // A(base-reset) = B(reset-controller) * C(base-controller)
         //Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * (transform_lighthouse_to_world * getTrackedPose(msg_controller.posestamped.pose)).inverse() * victor_arms[arm].controller_start_pose;
-        Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * getTrackedPose(msg_controller.posestamped.pose).inverse() * victor_arms[arm].controller_start_pose;
+        //Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * getTrackedPose(msg_controller.posestamped.pose).inverse() * victor_arms[arm].controller_start_pose;
+        Eigen::Affine3d relative_pose = Eigen::Affine3d::Identity();
+        relative_pose.translate(victor_arms[arm].ee_start_translation);
+        relative_pose.translate(viveToVictorTranslation(getTrackedPosition(msg_controller.posestamped.pose.position)));
+        Eigen::Vector3d controller_start_pose_victor = viveToVictorTranslation(victor_arms[arm].controller_start_translation);
+        relative_pose.translate(
+          Eigen::Vector3d(
+            -controller_start_pose_victor[0],
+            -controller_start_pose_victor[1],
+            -controller_start_pose_victor[2]
+          )
+        );
+
+        relative_pose.rotate(viveToVictorRotation(getTrackedRotation(msg_controller.posestamped.pose.orientation)));
+        relative_pose.rotate(viveToVictorRotation(victor_arms[arm].controller_start_rotation).inverse());
 
         // Compute IK solution
         victor_hardware_interface::MotionCommand msg_out_motion;
@@ -245,7 +265,7 @@ class DualArmTeleop
         tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/relative_pose"));
 
         tf::Transform transform2;
-        tf::poseEigenToTF(victor_arms[arm].controller_start_pose, transform2);
+        tf::poseEigenToTF(translationAndRotationToAffine(victor_arms[arm].controller_start_translation, victor_arms[arm].controller_start_rotation), transform2);
         tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/reset_pose"));
 
         tf::Transform transform3;
@@ -257,8 +277,36 @@ class DualArmTeleop
       robot_state::robotStateToRobotStateMsg(*kinematic_state, display_robot_state.state);
       pub_rviz.publish(display_robot_state);
     }
-    
-    Eigen::Vector3d getTrackedPosition(geometry_msgs::Point point)
+
+    Eigen::Affine3d translationAndRotationToAffine(Eigen::Vector3d translation, Eigen::Quaterniond rotation)
+    {
+      Eigen::Affine3d out = Eigen::Affine3d::Identity();
+      out.translate(translation);
+      out.rotate(rotation);
+      return out;
+    }
+
+    Eigen::Vector3d viveToVictorTranslation(Eigen::Vector3d vive)
+    {
+      return Eigen::Vector3d(
+        -vive[2],
+        -vive[0],
+        vive[1]
+      );
+    }
+
+    Eigen::Quaterniond viveToVictorRotation(Eigen::Quaterniond vive)
+    {
+      return Eigen::Quaterniond(
+        vive.x(),
+        vive.w(),
+        -vive.y(),
+        -vive.z()
+      );
+    }
+
+
+  Eigen::Vector3d getTrackedPosition(geometry_msgs::Point point)
     {
       return Eigen::Vector3d(
         point.x,
@@ -286,7 +334,17 @@ class DualArmTeleop
 
       return affine;
     }
-    
+
+    /*
+    Eigen::Affine3d getTrackedPoseController(geometry_msgs::Pose pose) {
+      Eigen::Affine3d affine = Eigen::Affine3d::Identity();
+
+      affine.translate(getTrackedPositionController(pose.position));
+      affine.rotate(getTrackedRotation(pose.orientation));
+
+      return affine;
+    }*/
+
   private:
     ros::NodeHandle n;
     ros::Subscriber sub;
