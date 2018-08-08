@@ -56,17 +56,17 @@
 
 struct victor_arm
 {
-  victor_arm() : enabled(false), initialized(false) {}
+  victor_arm() : enabled(false), initialized(false), ee_start_pose(Eigen::Affine3d::Identity()) {}
 
   bool enabled;
   bool initialized;
 
   int assigned_controller_index;
   int assigned_controller_id;
-  Eigen::Vector3d ee_start_translation;
-  Eigen::Quaterniond ee_start_rotation;
+  Eigen::Affine3d ee_start_pose;
   Eigen::Vector3d controller_start_translation;
   Eigen::Quaterniond controller_start_rotation;
+  Eigen::Affine3d last_valid_pose;
 
   // State publishers
   ros::Publisher pub_arm;
@@ -83,8 +83,6 @@ class DualArmTeleop
   public:
     DualArmTeleop()
     {
-      transform_lighthouse_to_world = Eigen::Affine3d::Identity();
-
       sub = n.subscribe<vive_msgs::ViveSystem>("vive", 10, &DualArmTeleop::callback, this);
 
       // Initialize victor kinematic model
@@ -107,9 +105,11 @@ class DualArmTeleop
                 victor_arms[arm].joint_model_group_name);
         victor_arms[arm].joint_names = victor_arms[arm].joint_model_group->getVariableNames();
 
-        victor_arms[arm].ee_start_translation = kinematic_state->getGlobalLinkTransform(
-                "victor_" + victor_arms[arm].joint_model_group_name + "_link_7").translation();
-        victor_arms[arm].ee_start_rotation = Eigen::Quaterniond::Identity();
+        victor_arms[arm].last_valid_pose = kinematic_state->getGlobalLinkTransform(
+                "victor_" + victor_arms[arm].joint_model_group_name + "_link_7");
+
+        //victor_arms[arm].ee_start_pose = victor_arms[arm].last_valid_pose;
+        victor_arms[arm].ee_start_pose.translate(victor_arms[arm].last_valid_pose.translation());
         //victor_arms[arm].ee_start_pose = transform_lighthouse_to_world * victor_arms[arm].ee_start_pose;
         /*Eigen::Quaterniond rot = Eigen::Quaterniond::Identity();
         rot.setFromTwoVectors(Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 1, 0));
@@ -123,6 +123,27 @@ class DualArmTeleop
                 victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
 
         pub_rviz = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
+        pub_err_msg = n.advertise<visualization_msgs::Marker>("err_msg", 0);
+
+        err_msg.header.frame_id = "victor_root";
+        err_msg.ns = "my_namespace";
+        err_msg.id = 0;
+        err_msg.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        err_msg.action = visualization_msgs::Marker::ADD;
+        err_msg.pose.position.x = 1;
+        err_msg.pose.position.y = 0;
+        err_msg.pose.position.z = 2;
+        err_msg.pose.orientation.x = 0.0;
+        err_msg.pose.orientation.y = 0.0;
+        err_msg.pose.orientation.z = 0.0;
+        err_msg.pose.orientation.w = 1.0;
+        err_msg.scale.x = 1;
+        err_msg.scale.y = 0.1;
+        err_msg.scale.z = 0.1;
+        err_msg.color.a = 1.0;
+        err_msg.color.r = 0.0;
+        err_msg.color.g = 1.0;
+        err_msg.color.b = 0.0;
       }
     }
 
@@ -176,31 +197,50 @@ class DualArmTeleop
         // Reset frame when button is pressed
         if (msg_controller.joystick.buttons[0] == 2 || !victor_arms[arm].initialized)
         {
+          //victor_arms[arm].ee_start_pose = victor_arms[arm].last_valid_pose;
+          /*Eigen::Transform<double, 3, 2, 0>::LinearMatrixType rot = kinematic_state->getGlobalLinkTransform(
+            "victor_" + victor_arms[arm].joint_model_group_name + "_link_7").linear();
+          victor_arms[arm].ee_start_rotation = viveToVictorRotation(Eigen::Quaterniond(rot[0], rot[1], rot[2], rot[3]));*/
+          /*victor_arms[arm].ee_start_pose = kinematic_state->getGlobalLinkTransform(
+            "victor_" + victor_arms[arm].joint_model_group_name + "_link_7");*/
+
           // Controller frame
           victor_arms[arm].controller_start_translation = getTrackedPosition(msg_controller.posestamped.pose.position);
-          victor_arms[arm].controller_start_rotation = getTrackedRotation(msg_controller.posestamped.pose.orientation);
-          /*victor_arms[arm].ee_start_pose.translation() = kinematic_state->getGlobalLinkTransform(
-            "victor_" + victor_arms[arm].joint_model_group_name + "_link_7").translation();*/
+          //victor_arms[arm].controller_start_rotation = getTrackedRotation(msg_controller.posestamped.pose.orientation);
+          //victor_arms[arm].controller_start_rotation = Eigen::Quaterniond::Identity();
+
           victor_arms[arm].initialized = true;
         }
 
-        // A(base-reset) = B(reset-controller) * C(base-controller)
-        //Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * (transform_lighthouse_to_world * getTrackedPose(msg_controller.posestamped.pose)).inverse() * victor_arms[arm].controller_start_pose;
-        //Eigen::Affine3d relative_pose = victor_arms[arm].ee_start_pose * getTrackedPose(msg_controller.posestamped.pose).inverse() * victor_arms[arm].controller_start_pose;
-        Eigen::Affine3d relative_pose = Eigen::Affine3d::Identity();
-        relative_pose.translate(victor_arms[arm].ee_start_translation);
-        relative_pose.translate(viveToVictorTranslation(getTrackedPosition(msg_controller.posestamped.pose.position)));
-        Eigen::Vector3d controller_start_pose_victor = viveToVictorTranslation(victor_arms[arm].controller_start_translation);
-        relative_pose.translate(
-          Eigen::Vector3d(
-            -controller_start_pose_victor[0],
-            -controller_start_pose_victor[1],
-            -controller_start_pose_victor[2]
-          )
-        );
+        // Reset orientation
+        if (msg_controller.joystick.buttons[1] == 2) {
+          victor_arms[arm].controller_start_rotation = getTrackedRotation(msg_controller.posestamped.pose.orientation);
+        }
 
+
+        //Calculate the relative pose
+        Eigen::Affine3d relative_pose = Eigen::Affine3d::Identity();
+
+        //Base
+        relative_pose.translate(victor_arms[arm].ee_start_pose.translation());
+
+        //Translation
+        Eigen::Vector3d translation(0, 0, 0);
+        translation += viveToVictorTranslation(getTrackedPosition(msg_controller.posestamped.pose.position));
+        translation -= viveToVictorTranslation(victor_arms[arm].controller_start_translation);
+        translation *= (msg_controller.joystick.axes[1] + 1) * 3;
+        if (translation.norm() < .1)
+        {
+          relative_pose.translate(translation);
+        }
+        //relative_pose.translate(translation);
+
+
+        // Rotation
+        //relative_pose.rotate(victor_arms[arm].ee_start_pose.linear());
         relative_pose.rotate(viveToVictorRotation(getTrackedRotation(msg_controller.posestamped.pose.orientation)));
         relative_pose.rotate(viveToVictorRotation(victor_arms[arm].controller_start_rotation).inverse());
+
 
         // Compute IK solution
         victor_hardware_interface::MotionCommand msg_out_motion;
@@ -210,6 +250,10 @@ class DualArmTeleop
         bool found_ik = kinematic_state->setFromIK(victor_arms[arm].joint_model_group, relative_pose, attempts, timeout);
 
         if (found_ik) {
+          victor_arms[arm].last_valid_pose = relative_pose;
+          victor_arms[arm].ee_start_pose = victor_arms[arm].last_valid_pose;
+          victor_arms[arm].controller_start_translation = getTrackedPosition(msg_controller.posestamped.pose.position);
+
           std::vector<double> joint_values;
           kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
 
@@ -221,12 +265,16 @@ class DualArmTeleop
           msg_out_motion.joint_position.joint_6 = joint_values[5];
           msg_out_motion.joint_position.joint_7 = joint_values[6];
 
-          ROS_INFO("Found IK solution");
+          //ROS_INFO("Found IK solution");
         }
         else
         {
-          ROS_INFO("Did not find IK solution");
+          //ROS_INFO("Did not find IK solution");
         }
+
+        err_msg.header.stamp = ros::Time();
+        err_msg.text = "Hello World!";
+        pub_err_msg.publish(err_msg);
 
         // Gripper control
         victor_hardware_interface::Robotiq3FingerActuatorCommand scissor;
@@ -350,13 +398,14 @@ class DualArmTeleop
     ros::Subscriber sub;
     tf::TransformBroadcaster tf_broadcaster;
     ros::Publisher pub_rviz;
+    ros::Publisher pub_err_msg;
+
+    visualization_msgs::Marker err_msg;
 
     robot_model::RobotModelPtr kinematic_model;
-  robot_state::RobotStatePtr kinematic_state;
+    robot_state::RobotStatePtr kinematic_state;
 
     victor_arm victor_arms[2];
-
-    Eigen::Affine3d transform_lighthouse_to_world;
 };
 
 int main(int argc, char** argv)
