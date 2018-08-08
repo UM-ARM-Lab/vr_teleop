@@ -36,12 +36,15 @@ Vive teleop control for Victor.
 
 ## Usage
 1. Connect HTC Vive to computer
-   1. If running for first time, start the SteamVR room setup 
+
+   If running for first time, start the SteamVR room setup.
 
 Remember to have your catkin workspace sourced and cd into it for each of the below steps. (example: `source ~/catkin_ws/devel/setup.bash && cd ~/catkin_ws`)
 
 2. In a new terminal, run `roscore`
-3. In a new terminal, run `rviz`
+3. In a new terminal, run `roslaunch victor_moveit_config demo.launch`
+   1. Disable the MotionPlanning visualization
+   2. Add a RobotState visualization
 4. In a new terminal, run openvr_ros_driver using 
 `~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vive_teleop/openvr_ros_driver/openvr_ros_driver_node`
 5. In a new terminal, run dual_arm_teleop using 
