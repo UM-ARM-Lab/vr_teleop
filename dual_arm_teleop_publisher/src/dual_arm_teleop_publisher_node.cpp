@@ -46,8 +46,10 @@ void callback(victor_hardware_interface::MotionCommand msg, int arm) {
 
     distance = sqrt(distance);
 
-    if (distance < .05) {
-        std::cout << arm << " within limits" << std::endl;
+    std::cout << "Joint space error (arm " << arm << "): " << distance << std::endl;
+
+    if (distance < .1) {
+        //std::cout << arm << " within limits" << std::endl;
 
         if (arm == 0) {
             pub_motion_left.publish(msg);
@@ -55,7 +57,7 @@ void callback(victor_hardware_interface::MotionCommand msg, int arm) {
             pub_motion_right.publish(msg);
         }
     } else {
-        std::cout << arm << " moved too quickly, not publishing" << std::endl;
+        //std::cout << arm << " moved too quickly, not publishing" << std::endl;
     }
 }
 
