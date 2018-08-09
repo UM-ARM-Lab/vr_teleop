@@ -54,19 +54,27 @@
 #include <tf/transform_broadcaster.h>
 #include "tf_conversions/tf_eigen.h"
 
+// rviz
+#include <rviz_visual_tools/rviz_visual_tools.h>
+
 struct victor_arm
 {
-  victor_arm() : enabled(false), initialized(false), ee_start_pose(Eigen::Affine3d::Identity()) {}
+  victor_arm() : activated(false), trackpad_pressed(false), enabled(false), initialized(false), ee_start_translation(Eigen::Vector3d::Identity()) {}
 
-  bool enabled;
-  bool initialized;
+  bool publishing = true;
+  bool activated; // true if arm is currently being teleoperated
+  bool trackpad_pressed;
+  bool enabled; // true if arm has been paired with a controller
+  bool initialized; // true if *_start_[translation/rotation] has been initialized
 
   int assigned_controller_index;
   int assigned_controller_id;
-  Eigen::Affine3d ee_start_pose;
+  Eigen::Vector3d ee_start_translation;
   Eigen::Vector3d controller_start_translation;
   Eigen::Quaterniond controller_start_rotation;
   Eigen::Affine3d last_valid_pose;
+
+  visualization_msgs::Marker err_msg;
 
   // State publishers
   ros::Publisher pub_arm;
@@ -100,6 +108,9 @@ class DualArmTeleop
       victor_arms[0].joint_model_group_name = "left_arm";
       victor_arms[1].joint_model_group_name = "right_arm";
 
+      //rvt = rviz_visual_tools::RvizVisualTools("victor_root", "err_msg", n);
+      //pub_err_msg = n.advertise<visualization_msgs::Marker>("err_msg", 10);
+
       for (int arm = 0; arm < 2; ++arm) {
         victor_arms[arm].joint_model_group = kinematic_model->getJointModelGroup(
                 victor_arms[arm].joint_model_group_name);
@@ -108,42 +119,37 @@ class DualArmTeleop
         victor_arms[arm].last_valid_pose = kinematic_state->getGlobalLinkTransform(
                 "victor_" + victor_arms[arm].joint_model_group_name + "_link_7");
 
-        //victor_arms[arm].ee_start_pose = victor_arms[arm].last_valid_pose;
-        victor_arms[arm].ee_start_pose.translate(victor_arms[arm].last_valid_pose.translation());
-        //victor_arms[arm].ee_start_pose = transform_lighthouse_to_world * victor_arms[arm].ee_start_pose;
-        /*Eigen::Quaterniond rot = Eigen::Quaterniond::Identity();
-        rot.setFromTwoVectors(Eigen::Vector3d(1, 0, 0), Eigen::Vector3d(0, 1, 0));
-        victor_arms[arm].ee_start_pose.rotate(rot);
-        rot.setFromTwoVectors(Eigen::Vector3d(0, 1, 0), Eigen::Vector3d(0, 0, 1));
-        victor_arms[arm].ee_start_pose.rotate(rot);*/
+        victor_arms[arm].ee_start_translation = victor_arms[arm].last_valid_pose.translation();
 
         victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(
                 victor_arms[arm].joint_model_group_name + "/motion_command", 10);
         victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
-                victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
+                "unchecked_victor/" + victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
 
         pub_rviz = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
-        pub_err_msg = n.advertise<visualization_msgs::Marker>("err_msg", 0);
 
-        err_msg.header.frame_id = "victor_root";
-        err_msg.ns = "my_namespace";
-        err_msg.id = 0;
-        err_msg.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-        err_msg.action = visualization_msgs::Marker::ADD;
-        err_msg.pose.position.x = 1;
-        err_msg.pose.position.y = 0;
-        err_msg.pose.position.z = 2;
-        err_msg.pose.orientation.x = 0.0;
-        err_msg.pose.orientation.y = 0.0;
-        err_msg.pose.orientation.z = 0.0;
-        err_msg.pose.orientation.w = 1.0;
-        err_msg.scale.x = 1;
-        err_msg.scale.y = 0.1;
-        err_msg.scale.z = 0.1;
-        err_msg.color.a = 1.0;
-        err_msg.color.r = 0.0;
-        err_msg.color.g = 1.0;
-        err_msg.color.b = 0.0;
+        victor_arms[arm].err_msg = visualization_msgs::Marker();
+        victor_arms[arm].err_msg.header.frame_id = "victor_root";
+        victor_arms[arm].err_msg.ns = "my_namespace";
+        victor_arms[arm].err_msg.id = arm;
+        victor_arms[arm].err_msg.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        victor_arms[arm].err_msg.action = visualization_msgs::Marker::ADD;
+        victor_arms[arm].err_msg.lifetime = ros::Duration();
+        victor_arms[arm].err_msg.pose.position.x = victor_arms[arm].ee_start_translation[0];
+        victor_arms[arm].err_msg.pose.position.y = victor_arms[arm].ee_start_translation[1];
+        victor_arms[arm].err_msg.pose.position.z = victor_arms[arm].ee_start_translation[2];
+        victor_arms[arm].err_msg.pose.orientation.x = 0.0;
+        victor_arms[arm].err_msg.pose.orientation.y = 0.0;
+        victor_arms[arm].err_msg.pose.orientation.z = 0.0;
+        victor_arms[arm].err_msg.pose.orientation.w = 1.0;
+        victor_arms[arm].err_msg.scale.x = 1;
+        victor_arms[arm].err_msg.scale.y = 0.1;
+        victor_arms[arm].err_msg.scale.z = 0.1;
+        victor_arms[arm].err_msg.color.a = 1.0;
+        victor_arms[arm].err_msg.color.r = 0.0;
+        victor_arms[arm].err_msg.color.g = 1.0;
+        victor_arms[arm].err_msg.color.b = 0.0;
+        victor_arms[arm].err_msg.text = "This msg is being published for arm " + std::to_string(victor_arms[arm].err_msg.id);
       }
     }
 
@@ -186,6 +192,16 @@ class DualArmTeleop
 
       for (int arm = 0; arm < 2; ++arm)
       {
+        /*if (victor_arms[arm].publishing) {
+          std::cout << "Published msg for arm " + std::to_string(arm) << std::endl;
+          pub_err_msg.publish(victor_arms[arm].err_msg);
+          //victor_arms[arm].publishing = false;
+        }*/
+        Eigen::Affine3d text_pose = Eigen::Affine3d::Identity();
+        //rvt.publishText()
+        //rvt.publishText(text_pose, "hello");
+
+        // Skip this arm if no controller is assigned to it
         if (!victor_arms[arm].enabled)
         {
           victor_arms[arm].initialized = false;
@@ -193,6 +209,20 @@ class DualArmTeleop
         }
 
         vive_msgs::Controller msg_controller = msg.controllers[victor_arms[arm].assigned_controller_index];
+
+        // Update this arm's activation status
+        if (msg_controller.joystick.buttons[2] == 2) {
+          if (!victor_arms[arm].trackpad_pressed) {
+            victor_arms[arm].trackpad_pressed = true;
+            victor_arms[arm].activated = !victor_arms[arm].activated;
+          }
+        } else {
+          victor_arms[arm].trackpad_pressed = false;
+        }
+        if (!victor_arms[arm].activated) {
+          continue;
+        }
+
 
         // Reset frame when button is pressed
         if (msg_controller.joystick.buttons[0] == 2 || !victor_arms[arm].initialized)
@@ -222,22 +252,19 @@ class DualArmTeleop
         Eigen::Affine3d relative_pose = Eigen::Affine3d::Identity();
 
         //Base
-        relative_pose.translate(victor_arms[arm].ee_start_pose.translation());
+        relative_pose.translate(victor_arms[arm].ee_start_translation);
 
         //Translation
         Eigen::Vector3d translation(0, 0, 0);
         translation += viveToVictorTranslation(getTrackedPosition(msg_controller.posestamped.pose.position));
         translation -= viveToVictorTranslation(victor_arms[arm].controller_start_translation);
-        translation *= (msg_controller.joystick.axes[1] + 1) * 3;
+        translation *= (msg_controller.joystick.axes[1] + 1.5) * .5;
         if (translation.norm() < .1)
         {
           relative_pose.translate(translation);
         }
-        //relative_pose.translate(translation);
-
 
         // Rotation
-        //relative_pose.rotate(victor_arms[arm].ee_start_pose.linear());
         relative_pose.rotate(viveToVictorRotation(getTrackedRotation(msg_controller.posestamped.pose.orientation)));
         relative_pose.rotate(viveToVictorRotation(victor_arms[arm].controller_start_rotation).inverse());
 
@@ -251,36 +278,44 @@ class DualArmTeleop
 
         if (found_ik) {
           victor_arms[arm].last_valid_pose = relative_pose;
-          victor_arms[arm].ee_start_pose = victor_arms[arm].last_valid_pose;
-          victor_arms[arm].controller_start_translation = getTrackedPosition(msg_controller.posestamped.pose.position);
+          victor_arms[arm].ee_start_translation = relative_pose.translation();
 
-          std::vector<double> joint_values;
-          kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
-
-          msg_out_motion.joint_position.joint_1 = joint_values[0];
-          msg_out_motion.joint_position.joint_2 = joint_values[1];
-          msg_out_motion.joint_position.joint_3 = joint_values[2];
-          msg_out_motion.joint_position.joint_4 = joint_values[3];
-          msg_out_motion.joint_position.joint_5 = joint_values[4];
-          msg_out_motion.joint_position.joint_6 = joint_values[5];
-          msg_out_motion.joint_position.joint_7 = joint_values[6];
 
           //ROS_INFO("Found IK solution");
+          victor_arms[arm].err_msg.text = "";
         }
         else
         {
+          relative_pose = victor_arms[arm].last_valid_pose;
+          victor_arms[arm].err_msg.text = "Did not find IK solution";
           //ROS_INFO("Did not find IK solution");
         }
+        std::vector<double> joint_values;
+        kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
 
-        err_msg.header.stamp = ros::Time();
-        err_msg.text = "Hello World!";
-        pub_err_msg.publish(err_msg);
+        msg_out_motion.joint_position.joint_1 = joint_values[0];
+        msg_out_motion.joint_position.joint_2 = joint_values[1];
+        msg_out_motion.joint_position.joint_3 = joint_values[2];
+        msg_out_motion.joint_position.joint_4 = joint_values[3];
+        msg_out_motion.joint_position.joint_5 = joint_values[4];
+        msg_out_motion.joint_position.joint_6 = joint_values[5];
+        msg_out_motion.joint_position.joint_7 = joint_values[6];
+
+        victor_arms[arm].controller_start_translation = getTrackedPosition(msg_controller.posestamped.pose.position);
+
+        victor_arms[arm].err_msg.id = arm;
+        victor_arms[arm].err_msg.pose.position.x = relative_pose.translation()[0];
+        victor_arms[arm].err_msg.pose.position.y = relative_pose.translation()[1];
+        victor_arms[arm].err_msg.pose.position.z = relative_pose.translation()[2];
+        victor_arms[arm].err_msg.header.stamp = ros::Time();
+        //pub_err_msg.publish(victor_arms[arm].err_msg);
 
         // Gripper control
         victor_hardware_interface::Robotiq3FingerActuatorCommand scissor;
         scissor.speed = 1.0;
         scissor.force = 1.0;
-        scissor.position = .5 * (1 - msg_controller.joystick.axes[0]);
+        //scissor.position = .5 * (1 - msg_controller.joystick.axes[0]);
+        scissor.position = 1;
 
         victor_hardware_interface::Robotiq3FingerActuatorCommand finger_a;
         finger_a.speed = 1.0;
@@ -398,9 +433,8 @@ class DualArmTeleop
     ros::Subscriber sub;
     tf::TransformBroadcaster tf_broadcaster;
     ros::Publisher pub_rviz;
-    ros::Publisher pub_err_msg;
-
-    visualization_msgs::Marker err_msg;
+    //ros::Publisher pub_err_msg;
+    //rviz_visual_tools::RvizVisualTools rvt;
 
     robot_model::RobotModelPtr kinematic_model;
     robot_state::RobotStatePtr kinematic_state;
