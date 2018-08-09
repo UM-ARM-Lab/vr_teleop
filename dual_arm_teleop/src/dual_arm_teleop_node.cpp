@@ -122,7 +122,7 @@ class DualArmTeleop
         victor_arms[arm].ee_start_translation = victor_arms[arm].last_valid_pose.translation();
 
         victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(
-                victor_arms[arm].joint_model_group_name + "/motion_command", 10);
+                "unchecked_victor/" + victor_arms[arm].joint_model_group_name + "/motion_command", 10);
         victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
                 "unchecked_victor/" + victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
 
