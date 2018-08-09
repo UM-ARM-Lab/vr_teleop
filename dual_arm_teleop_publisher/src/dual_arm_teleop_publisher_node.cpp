@@ -14,6 +14,13 @@ victor_hardware_interface::MotionStatus robotStatusRight;
 ros::Publisher pub_motion_left;
 ros::Publisher pub_motion_right;
 
+std::vector<double> jvqToVector(victor_hardware_interface::JointValueQuantity jvq)
+{
+    std::vector<double> v{jvq.joint_1, jvq.joint_2, jvq.joint_3, jvq.joint_4,
+                          jvq.joint_5, jvq.joint_6, jvq.joint_7};
+    return v;
+};
+
 void updateRobotStatusLeft(victor_hardware_interface::MotionStatus msg) {
     robotStatusLeft = msg;
 }
@@ -23,17 +30,23 @@ void updateRobotStatusRight(victor_hardware_interface::MotionStatus msg) {
 }
 
 void callback(victor_hardware_interface::MotionCommand msg, int arm) {
-    geometry_msgs::Pose cartesian_pose = msg.cartesian_pose;
-    geometry_msgs::Pose measured_cartesian_pose;
+    std::vector<double> joint_positions = jvqToVector(msg.joint_position);
+    std::vector<double> measured_joint_positions;
     if (arm == 0) {
-        measured_cartesian_pose = robotStatusLeft.measured_cartesian_pose;
+        measured_joint_positions = jvqToVector(robotStatusLeft.measured_joint_position);
     } else {
-        measured_cartesian_pose = robotStatusRight.measured_cartesian_pose;
+        measured_joint_positions = jvqToVector(robotStatusRight.measured_joint_position);
     }
 
-    // Compare pose request with measured pose
-    double distance = sqrt(pow(cartesian_pose.position.x - measured_cartesian_pose.position.x, 2) + pow(cartesian_pose.position.y - measured_cartesian_pose.position.y, 2) + pow(cartesian_pose.position.z - measured_cartesian_pose.position.z, 2));
-    if (distance < .5) {
+    double distance = 0;
+
+    for (int i = 0; i < joint_positions.size(); ++i) {
+        distance += pow(joint_positions[i] - measured_joint_positions[i], 2);
+    }
+
+    distance = sqrt(distance);
+
+    if (distance < .05) {
         std::cout << arm << " within limits" << std::endl;
 
         if (arm == 0) {
