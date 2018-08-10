@@ -27,8 +27,8 @@ Vive teleop control for Victor.
    `git clone https://github.com/UM-ARM-Lab/kuka_iiwa_interface.git`  
 4. Clone arc_utilities into catkin workspace  
    `git clone https://github.com/UM-ARM-Lab/arc_utilities.git`  
-5. Clone this repository into catkin workspace  
-   `git clone https://github.com/UM-ARM-Lab/vive_teleop.git`
+5. **Recursively** clone this repository into catkin workspace  
+   `git clone https://github.com/UM-ARM-Lab/vive_teleop.git --recursive`
 6. Build the entire catkin workspace
 
 ## Usage
