@@ -228,8 +228,8 @@ public:
           "victor_" + victor_arms[arm].joint_model_group_name + "_link_7");*/
 
         // Controller frame
-        victor_arms[arm].controller_start_translation = getTrackedPosition(msg_controller.posestamped.pose.position);
-        //victor_arms[arm].controller_start_rotation = getTrackedRotation(msg_controller.posestamped.pose.orientation);
+        victor_arms[arm].controller_start_translation = msgToEigenPoint(msg_controller.posestamped.pose.position);
+        //victor_arms[arm].controller_start_rotation = msgToEigenQuaternion(msg_controller.posestamped.pose.orientation);
         //victor_arms[arm].controller_start_rotation = Eigen::Quaterniond::Identity();
 
         victor_arms[arm].initialized = true;
@@ -237,7 +237,7 @@ public:
 
       // Reset orientation
       if (msg_controller.joystick.buttons[1] == 2) {
-        victor_arms[arm].controller_start_rotation = getTrackedRotation(msg_controller.posestamped.pose.orientation);
+        victor_arms[arm].controller_start_rotation = msgToEigenQuaternion(msg_controller.posestamped.pose.orientation);
       }
 
 
@@ -249,7 +249,7 @@ public:
 
       //Translation
       Eigen::Vector3d translation(0, 0, 0);
-      translation += viveToVictorTranslation(getTrackedPosition(msg_controller.posestamped.pose.position));
+      translation += viveToVictorTranslation(msgToEigenPoint(msg_controller.posestamped.pose.position));
       translation -= viveToVictorTranslation(victor_arms[arm].controller_start_translation);
       translation *= (msg_controller.joystick.axes[1] + 1.5) * .5;
       if (translation.norm() < .1)
@@ -258,12 +258,10 @@ public:
       }
 
       // Rotation
-      relative_pose.rotate(viveToVictorRotation(getTrackedRotation(msg_controller.posestamped.pose.orientation)));
+      relative_pose.rotate(viveToVictorRotation(msgToEigenQuaternion(msg_controller.posestamped.pose.orientation)));
       relative_pose.rotate(viveToVictorRotation(victor_arms[arm].controller_start_rotation).inverse());
 
-
       // Compute IK solution
-
       const kinematics::KinematicsBaseConstPtr& solver = victor_arms[arm].joint_model_group->getSolverInstance();
       assert(solver.get());
 
@@ -319,10 +317,12 @@ public:
         std::cerr << std::endl;
       }
 
+      // Arm control
+      victor_hardware_interface::MotionCommand msg_out_motion;
+
       std::vector<double> joint_values;
       kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
 
-      victor_hardware_interface::MotionCommand msg_out_motion;
       msg_out_motion.joint_position.joint_1 = joint_values[0];
       msg_out_motion.joint_position.joint_2 = joint_values[1];
       msg_out_motion.joint_position.joint_3 = joint_values[2];
@@ -331,7 +331,7 @@ public:
       msg_out_motion.joint_position.joint_6 = joint_values[5];
       msg_out_motion.joint_position.joint_7 = joint_values[6];
 
-      victor_arms[arm].controller_start_translation = getTrackedPosition(msg_controller.posestamped.pose.position);
+      victor_arms[arm].controller_start_translation = msgToEigenPoint(msg_controller.posestamped.pose.position);
 
       victor_arms[arm].err_msg.id = arm;
       victor_arms[arm].err_msg.pose.position.x = relative_pose.translation()[0];
@@ -341,10 +341,11 @@ public:
       //pub_err_msg.publish(victor_arms[arm].err_msg);
 
       // Gripper control
+      victor_hardware_interface::Robotiq3FingerCommand msg_out_gripper;
+
       victor_hardware_interface::Robotiq3FingerActuatorCommand scissor;
       scissor.speed = 1.0;
       scissor.force = 1.0;
-      //scissor.position = .5 * (1 - msg_controller.joystick.axes[0]);
       scissor.position = 1;
 
       victor_hardware_interface::Robotiq3FingerActuatorCommand finger_a;
@@ -362,7 +363,6 @@ public:
       finger_c.force = 1.0;
       finger_c.position = msg_controller.joystick.axes[2];
 
-      victor_hardware_interface::Robotiq3FingerCommand msg_out_gripper;
       msg_out_gripper.scissor_command = scissor;
       msg_out_gripper.finger_a_command = finger_a;
       msg_out_gripper.finger_b_command = finger_b;
@@ -382,7 +382,7 @@ public:
       tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/reset_pose"));
 
       tf::Transform transform3;
-      tf::poseEigenToTF(getTrackedPose(msg_controller.posestamped.pose), transform3);
+      tf::poseEigenToTF(msgToEigenPose(msg_controller.posestamped.pose), transform3);
       tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/global_pose"));
 
       tf::Transform transform4;
@@ -423,7 +423,7 @@ public:
   }
 
 
-Eigen::Vector3d getTrackedPosition(geometry_msgs::Point point)
+  Eigen::Vector3d msgToEigenPoint(geometry_msgs::Point point)
   {
     return Eigen::Vector3d(
       point.x,
@@ -432,7 +432,7 @@ Eigen::Vector3d getTrackedPosition(geometry_msgs::Point point)
     );
   }
 
-  Eigen::Quaterniond getTrackedRotation(geometry_msgs::Quaternion quaternion)
+  Eigen::Quaterniond msgToEigenQuaternion(geometry_msgs::Quaternion quaternion)
   {
     return Eigen::Quaterniond(
       quaternion.x,
@@ -442,25 +442,15 @@ Eigen::Vector3d getTrackedPosition(geometry_msgs::Point point)
     );
   }
 
-  Eigen::Affine3d getTrackedPose(geometry_msgs::Pose pose)
+  Eigen::Affine3d msgToEigenPose(geometry_msgs::Pose pose)
   {
     Eigen::Affine3d affine = Eigen::Affine3d::Identity();
 
-    affine.translate(getTrackedPosition(pose.position));
-    affine.rotate(getTrackedRotation(pose.orientation));
+    affine.translate(msgToEigenPoint(pose.position));
+    affine.rotate(msgToEigenQuaternion(pose.orientation));
 
     return affine;
   }
-
-  /*
-  Eigen::Affine3d getTrackedPoseController(geometry_msgs::Pose pose) {
-    Eigen::Affine3d affine = Eigen::Affine3d::Identity();
-
-    affine.translate(getTrackedPositionController(pose.position));
-    affine.rotate(getTrackedRotation(pose.orientation));
-
-    return affine;
-  }*/
 
 private:
   ros::NodeHandle n;
