@@ -63,7 +63,7 @@ The controls for operating the robot are as follows:
 ## Troubleshooting
 * If SteamVR is having trouble detecting the Vive headset, try switching on/off the SteamVR beta
 
-   Found by right clicking SteamVR > Properties > Betas >  Select the beta you would like to opt into > beta - SteamVR Beta Update
+   Found by right clicking SteamVR > Properties > Betas >  Select the beta you would like to opt into
 * Read the SteamVR for Linux guide to make sure everything is configured properly
 
    [SteamVR for Linux guide](https://github.com/ValveSoftware/SteamVR-for-Linux)
