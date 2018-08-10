@@ -122,9 +122,13 @@ class DualArmTeleop
         victor_arms[arm].ee_start_translation = victor_arms[arm].last_valid_pose.translation();
 
         victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(
+                victor_arms[arm].joint_model_group_name + "/motion_command", 10);
+        victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
+                victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
+        /*victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(
                 "unchecked_victor/" + victor_arms[arm].joint_model_group_name + "/motion_command", 10);
         victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
-                "unchecked_victor/" + victor_arms[arm].joint_model_group_name + "/gripper_command", 10);
+                "unchecked_victor/" + victor_arms[arm].joint_model_group_name + "/gripper_command", 10);*/
 
         pub_rviz = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
 
@@ -286,7 +290,6 @@ class DualArmTeleop
         }
         else
         {
-          relative_pose = victor_arms[arm].last_valid_pose;
           victor_arms[arm].err_msg.text = "Did not find IK solution";
           //ROS_INFO("Did not find IK solution");
         }
@@ -354,6 +357,10 @@ class DualArmTeleop
         tf::Transform transform3;
         tf::poseEigenToTF(getTrackedPose(msg_controller.posestamped.pose), transform3);
         tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/global_pose"));
+
+        tf::Transform transform4;
+        tf::poseEigenToTF(victor_arms[arm].last_valid_pose, transform4);
+        tf_broadcaster.sendTransform(tf::StampedTransform(transform4, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group_name + "/last_valid_pose"));
       }
 
       moveit_msgs::DisplayRobotState display_robot_state;
