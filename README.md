@@ -34,7 +34,7 @@ Vive teleop control for Victor.
 ## Usage
 1. Connect HTC Vive to computer
 
-   If running for first time, start the SteamVR room setup.
+   If running for first time, start the SteamVR room setup to calibrate the device.
 
 Remember to have your catkin workspace sourced and cd into it for each of the below steps. (example: `source ~/catkin_ws/devel/setup.bash && cd ~/catkin_ws`)
 
