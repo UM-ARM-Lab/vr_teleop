@@ -11,6 +11,8 @@ Vive teleop control for Victor.
 
    Follow all the instructions to install MoveIt! Please make sure you are following the instructions for ROS Kinetic.  
    [MoveIt! Install instructions](http://moveit.ros.org/install/)
+   
+   Install the moveit-visual-tools: `sudo apt-get install ros-kinetic-moveit-visual-tools`
 
 3. Install Steam
 
