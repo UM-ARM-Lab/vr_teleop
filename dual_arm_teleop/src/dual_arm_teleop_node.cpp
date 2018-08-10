@@ -1,40 +1,6 @@
-/*********************************************************************
- * Software License Agreement (BSD License)
- *
- *  Copyright (c) 2012, Willow Garage, Inc.
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following
- *     disclaimer in the documentation and/or other materials provided
- *     with the distribution.
- *   * Neither the name of Willow Garage nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- *********************************************************************/
-
-/* Author: Sachin Chitta, Michael Lautman*/
-
 #include <ros/ros.h>
+
+#include <queue>
 
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
@@ -56,6 +22,31 @@
 
 // rviz
 #include <rviz_visual_tools/rviz_visual_tools.h>
+
+struct SeedDistanceFunctor
+{
+  using Solution = std::vector<double>;
+  const Solution seed;
+  SeedDistanceFunctor(Solution _seed) : seed(std::move(_seed)) {}
+  static double distance(const Solution& a, const Solution& b)
+  {
+    assert(a.size() == b.size());
+    double d = 0.0;
+    for (size_t i = 0; i < a.size(); ++i)
+    {
+      //d += fabs(a[i]-b[i]);
+      d += pow(a[i]-b[i], 2);
+    }
+    return d;
+  }
+
+  // NB: priority_queue is a max-heap structure, so less() should actually return >
+  // "highest priority"
+  bool operator()(const Solution& a, const Solution& b) const
+  {
+    return distance(seed, a) > distance(seed, b);
+  }
+};
 
 struct victor_arm
 {
@@ -274,16 +265,47 @@ class DualArmTeleop
 
 
         // Compute IK solution
-        victor_hardware_interface::MotionCommand msg_out_motion;
 
-        std::size_t attempts = 10;
-        double timeout = 0.01;
-        bool found_ik = kinematic_state->setFromIK(victor_arms[arm].joint_model_group, relative_pose, attempts, timeout);
+        const kinematics::KinematicsBaseConstPtr& solver = victor_arms[arm].joint_model_group->getSolverInstance();
+        assert(solver.get());
 
-        if (found_ik) {
+        Eigen::Affine3d solverTrobot = Eigen::Affine3d::Identity();
+        kinematic_state->setToIKSolverFrame(solverTrobot, solver);
+
+        // Convert to solver frame
+        Eigen::Affine3d pt_solver = solverTrobot * relative_pose;
+
+        std::vector<geometry_msgs::Pose> target_poses;
+        geometry_msgs::Pose pose;
+        Eigen::Quaterniond q(pt_solver.linear());
+        pose.position.x = pt_solver.translation().x();
+        pose.position.y = pt_solver.translation().y();
+        pose.position.z = pt_solver.translation().z();
+        pose.orientation.x = q.x();
+        pose.orientation.y = q.y();
+        pose.orientation.z = q.z();
+        pose.orientation.w = q.w();
+        target_poses.push_back(pose);
+
+        std::vector<double> seed;
+        kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, seed);
+        //std::vector<double> seed(victor_arms[arm].joint_model_group->getVariableCount());
+
+        std::vector<std::vector<double>> solutions;
+        kinematics::KinematicsResult result;
+        kinematics::KinematicsQueryOptions options;
+        options.discretization_method = kinematics::DiscretizationMethod::ALL_DISCRETIZED;
+
+        solver->getPositionIK(target_poses, seed, solutions, result, options);
+
+        if (!solutions.empty()) {
           victor_arms[arm].last_valid_pose = relative_pose;
           victor_arms[arm].ee_start_translation = relative_pose.translation();
 
+          SeedDistanceFunctor functor(seed);
+          std::priority_queue<std::vector<double>, std::vector<std::vector<double>>, SeedDistanceFunctor>
+                                                                                     slnQueue(solutions.begin(), solutions.end(), functor);
+          kinematic_state->setJointGroupPositions(victor_arms[arm].joint_model_group, slnQueue.top());
 
           //ROS_INFO("Found IK solution");
           victor_arms[arm].err_msg.text = "";
@@ -293,9 +315,16 @@ class DualArmTeleop
           victor_arms[arm].err_msg.text = "Did not find IK solution";
           //ROS_INFO("Did not find IK solution");
         }
+
+        std::cerr << "Got " << solutions.size() << " solutions ";
+        if (arm == 1) {
+          std::cerr << std::endl;
+        }
+
         std::vector<double> joint_values;
         kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
 
+        victor_hardware_interface::MotionCommand msg_out_motion;
         msg_out_motion.joint_position.joint_1 = joint_values[0];
         msg_out_motion.joint_position.joint_2 = joint_values[1];
         msg_out_motion.joint_position.joint_3 = joint_values[2];
