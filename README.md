@@ -17,14 +17,11 @@ Vive teleop control for Victor.
    Launch the debian installer to install Steam.  
    [Steam download](https://store.steampowered.com/about/)
 
-4. Install SteamVR and dependencies
+4. Install SteamVR
 
    1. Launch the Steam application and log in with an account
    2. Click on Library > VR
    3. Select SteamVR and click install
-   4. Follow instructions up to USB DEVICE REQUIREMENTS:  
-   [SteamVR for Linux setup](https://github.com/ValveSoftware/SteamVR-for-Linux)  
-   Note: This node was tested on nvidia-390 drivers.
    
 3. Clone kuka_iiwa_interface into catkin workspace  
    `git clone https://github.com/UM-ARM-Lab/kuka_iiwa_interface.git`  
@@ -32,7 +29,7 @@ Vive teleop control for Victor.
    `git clone https://github.com/UM-ARM-Lab/arc_utilities.git`  
 5. Clone this repository into catkin workspace  
    `git clone https://github.com/UM-ARM-Lab/vive_teleop.git`
-9. Build the entire catkin workspace
+6. Build the entire catkin workspace
 
 ## Usage
 1. Connect HTC Vive to computer
@@ -53,3 +50,6 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
 ## Troubleshooting
 * If SteamVR is having trouble detecting the Vive headset, try switching on/off the SteamVR beta
    1. found by right clicking SteamVR > Properties > Betas >  Select the beta you would like to opt into > beta - SteamVR Beta Update
+* Read the SteamVR for Linux guide to make sure everything is peachy  
+   [SteamVR for Linux guide](https://github.com/ValveSoftware/SteamVR-for-Linux)  
+   Note: This node was tested on nvidia-390 drivers.
