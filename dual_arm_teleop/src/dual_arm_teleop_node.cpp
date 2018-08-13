@@ -70,7 +70,6 @@ struct victor_arm
   Eigen::Vector3d controller_start_translation;
   Eigen::Quaterniond controller_start_rotation;
   Eigen::Affine3d last_valid_pose;
-  Eigen::Affine3d last_valid_synced_pose;
 
   std::vector<double> joint_position_measured;
 
@@ -112,8 +111,8 @@ public:
       victor_arms[arm].joint_model_group = kinematic_model->getJointModelGroup(victor_arms[arm].joint_model_group_name);
 
       victor_arms[arm].last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group->getName() + "_link_7");
-      victor_arms[arm].last_valid_synced_pose = kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group->getName() + "_link_7");
       victor_arms[arm].ee_start_translation = victor_arms[arm].last_valid_pose.translation();
+      victor_arms[arm].joint_position_measured.resize(7);
 
       victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(victor_arms[arm].joint_model_group->getName() + "/motion_command", 10);
       victor_arms[arm].pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(victor_arms[arm].joint_model_group->getName() + "/gripper_command", 10);
@@ -308,6 +307,7 @@ public:
 
       // Arm control
       victor_hardware_interface::MotionCommand msg_out_arm;
+      msg_out_arm.control_mode.mode = 2;
 
       std::vector<double> joint_values;
       kinematic_state->copyJointGroupPositions(victor_arms[arm].joint_model_group, joint_values);
@@ -360,8 +360,6 @@ public:
       // Publish state messages
       if (armWithinDelta(jvqToVector(msg_out_arm.joint_position), arm)) {
         victor_arms[arm].pub_arm.publish(msg_out_arm);
-
-        victor_arms[arm].last_valid_synced_pose = relative_pose;
       }
 
       victor_arms[arm].pub_gripper.publish(msg_out_gripper);
@@ -382,10 +380,6 @@ public:
       tf::Transform transform4;
       tf::poseEigenToTF(victor_arms[arm].last_valid_pose, transform4);
       tf_broadcaster.sendTransform(tf::StampedTransform(transform4, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group->getName() + "/last_valid_pose"));
-
-      tf::Transform transform5;
-      tf::poseEigenToTF(victor_arms[arm].last_valid_synced_pose, transform5);
-      tf_broadcaster.sendTransform(tf::StampedTransform(transform5, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group->getName() + "/last_valid_synced_pose"));
     }
 
     moveit_msgs::DisplayRobotState display_robot_state;
@@ -421,7 +415,7 @@ public:
 
     std::cout << "Joint space error for " << victor_arms[arm].joint_model_group->getName() << ": " << distance << std::endl;
 
-    return distance < 1.5;
+    return distance < .7;
   }
 
   Eigen::Affine3d translationAndRotationToAffine(Eigen::Vector3d translation, Eigen::Quaterniond rotation)
