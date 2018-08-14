@@ -25,6 +25,8 @@ Vive teleop control for Victor.
    2. Click on Library > VR
    3. Select SteamVR and click install
    
+   You can also install SteamVR using Steam's browser protocol (enter this link into your browser's address bar): `steam://install/250820`
+   
 3. Clone kuka_iiwa_interface into catkin workspace  
    `git clone https://github.com/UM-ARM-Lab/kuka_iiwa_interface.git`  
 4. Clone arc_utilities into catkin workspace  
