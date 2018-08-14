@@ -48,6 +48,7 @@ private:
   ros::Publisher pub_gripper;
   ros::Subscriber sub_arm_status;
 
+  tf::TransformBroadcaster tf_broadcaster;
   visualization_msgs::Marker err_msg;
 
   // Methods
@@ -72,7 +73,7 @@ public:
   int assigned_controller_id;
 
   // Methods
-  RobotArm(robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n, std::string joint_model_group_name);
+  RobotArm(std::string joint_model_group_name, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n);
 
   void control(vive_msgs::ViveSystem msg);
 };

@@ -1,9 +1,16 @@
-#include "RobotArm.h"
+#include "robot_arm.h"
 
-RobotArm::RobotArm(robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n, std::string joint_model_group_name)
+RobotArm::RobotArm(std::string joint_model_group_name, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
 {
-  this->kinematic_model = kinematic_model;
-  this->kinematic_state = kinematic_state;
+//  this->kinematic_model = kinematic_model;
+//  this->kinematic_state = kinematic_state;
+
+  // Initialize kinematic model
+  robot_model_loader::RobotModelLoader robot_model_load("robot_description");
+
+  kinematic_model = robot_model_load.getModel();
+  kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
+
   joint_model_group = kinematic_model->getJointModelGroup(joint_model_group_name);
 
   last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
@@ -176,26 +183,26 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 
   pub_gripper.publish(msg_out_gripper);
 
-/*    // Display rviz poses
-  tf::Transform transform1;
-  tf::poseEigenToTF(relative_pose, transform1);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", joint_model_group->getName() + "/relative_pose"));
-
-  tf::Transform transform2;
-  tf::poseEigenToTF(translationAndRotationToAffine(controller_start_translation, controller_start_rotation), transform2);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", joint_model_group->getName() + "/reset_pose"));
-
-  tf::Transform transform3;
-  tf::poseEigenToTF(poseMsgToEigen(msg_controller.posestamped.pose), transform3);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", joint_model_group->getName() + "/global_pose"));
-
-  tf::Transform transform4;
-  tf::poseEigenToTF(last_valid_pose, transform4);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform4, ros::Time::now(), "victor_root", joint_model_group->getName() + "/last_valid_pose"));
-
-  tf::Transform transform5;
-  tf::poseEigenToTF(translationAndRotationToAffine(ee_start_translation, Eigen::Quaterniond::Identity()), transform5);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform5, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_start_translation"));*/
+//  // Display rviz poses
+//  tf::Transform transform1;
+//  tf::poseEigenToTF(relative_pose, transform1);
+//  tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", joint_model_group->getName() + "/relative_pose"));
+//
+//  tf::Transform transform2;
+//  tf::poseEigenToTF(translationAndRotationToAffine(controller_start_translation, controller_start_rotation), transform2);
+//  tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", joint_model_group->getName() + "/reset_pose"));
+//
+//  tf::Transform transform3;
+//  tf::poseEigenToTF(poseMsgToEigen(msg_controller.posestamped.pose), transform3);
+//  tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", joint_model_group->getName() + "/global_pose"));
+//
+//  tf::Transform transform4;
+//  tf::poseEigenToTF(last_valid_pose, transform4);
+//  tf_broadcaster.sendTransform(tf::StampedTransform(transform4, ros::Time::now(), "victor_root", joint_model_group->getName() + "/last_valid_pose"));
+//
+//  tf::Transform transform5;
+//  tf::poseEigenToTF(translationAndRotationToAffine(ee_start_translation, Eigen::Quaterniond::Identity()), transform5);
+//  tf_broadcaster.sendTransform(tf::StampedTransform(transform5, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_start_translation"));
 }
 
 void RobotArm::updateMeasuredState(victor_hardware_interface::MotionStatus msg) {

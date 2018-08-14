@@ -44,7 +44,7 @@ include_directories(SYSTEM
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(${PROJECT_NAME}_node src/RobotArm.cpp src/dual_arm_teleop_node.cpp)
+add_executable(${PROJECT_NAME}_node src/robot_arm.cpp src/dual_arm_teleop_node.cpp)
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
