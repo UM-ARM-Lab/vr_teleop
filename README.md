@@ -25,6 +25,8 @@ Vive teleop control for Victor.
    2. Click on Library > VR
    3. Select SteamVR and click install
    
+   You can also install SteamVR using Steam's browser protocol (enter this link into your browser's address bar): `steam://install/250820`
+   
 3. Clone kuka_iiwa_interface into catkin workspace  
    `git clone https://github.com/UM-ARM-Lab/kuka_iiwa_interface.git`  
 4. Clone arc_utilities into catkin workspace  
@@ -35,19 +37,19 @@ Vive teleop control for Victor.
 
 ## Usage
 1. Connect HTC Vive to computer
-
-   If running for first time, start the SteamVR room setup to calibrate the device.
+2. Launch SteamVR
+   1. Launch Steam
+   2. Click on Library > VR
+   3. Select SteamVR and click play
+   
+   If you are running SteamVR for first time, please start the SteamVR room setup to calibrate the device.
 
 Remember to have your catkin workspace sourced and cd into it for each of the below steps. (example: `source ~/catkin_ws/devel/setup.bash && cd ~/catkin_ws`)
 
-2. In a new terminal, run `roscore`
-3. In a new terminal, run openvr_ros_driver using 
+3. In a new terminal, run `roscore`
+4. In a new terminal, run openvr_ros_driver using 
 `~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vive_teleop/openvr_ros_driver/openvr_ros_driver_node`
-
-  * type `refresh` if all controllers are not found
-  * type `start`
-
-4. In a new terminal, run dual_arm_teleop using 
+5. In a new terminal, run dual_arm_teleop using 
 `roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
 
 ### Controls
