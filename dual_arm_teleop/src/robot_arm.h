@@ -64,16 +64,14 @@ private:
   static std::vector<double> jvqToVector(victor_hardware_interface::JointValueQuantity jvq);
 
 public:
-  bool activated; // true if arm is currently being teleoperated
-  bool trackpad_pressed;
-  bool enabled; // true if arm has been paired with a controller
+  bool enabled; // arm control toggle by keybind
   bool initialized; // true if *_start_[translation/rotation] has been initialized
+  bool trackpad_pressed;
 
-  int assigned_controller_index;
-  int assigned_controller_id;
+  int controller_hand;
 
   // Methods
-  RobotArm(std::string joint_model_group_name, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n);
+  RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n);
 
   void control(vive_msgs::ViveSystem msg);
 };

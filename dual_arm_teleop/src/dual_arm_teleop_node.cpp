@@ -27,8 +27,8 @@ private:
   robot_state::RobotStatePtr kinematic_state;
 
   RobotArm victor_arms[2] {
-      {"left_arm", kinematic_model, kinematic_state, n},
-      {"right_arm", kinematic_model, kinematic_state, n}
+      {"left_arm", 1, kinematic_model, kinematic_state, n},
+      {"right_arm", 2, kinematic_model, kinematic_state, n}
   };
 
 public:
@@ -47,41 +47,6 @@ public:
   }
 
   void callback(vive_msgs::ViveSystem msg) {
-    // Assign controllers to arms
-    for (int arm = 0; arm < 2; ++arm)
-    {
-      victor_arms[arm].enabled = false;
-    }
-
-    std::vector<int> unassigned_controller_indices;
-    for (int controller = 0; controller < msg.controllers.size(); ++controller)
-    {
-      int controller_id = msg.controllers[controller].id;
-
-      bool assigned = false;
-      for (int arm = 0; arm < 2; ++arm)
-      {
-        if (victor_arms[arm].assigned_controller_id == controller_id)
-        {
-          victor_arms[arm].enabled = true;
-          assigned = true;
-          victor_arms[arm].assigned_controller_index = controller;
-        }
-      }
-      if (!assigned) unassigned_controller_indices.push_back(controller);
-    }
-
-    for (int arm = 0; arm < 2; ++arm)
-    {
-      if (!victor_arms[arm].enabled)
-      {
-        victor_arms[arm].assigned_controller_index = unassigned_controller_indices.back();
-        victor_arms[arm].assigned_controller_id = msg.controllers[victor_arms[arm].assigned_controller_index].id;
-        unassigned_controller_indices.pop_back();
-        victor_arms[arm].enabled = true;
-      }
-    }
-
     for (int arm = 0; arm < 2; ++arm)
     {
       victor_arms[arm].control(msg);

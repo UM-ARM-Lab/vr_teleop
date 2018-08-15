@@ -1,7 +1,8 @@
 #include "robot_arm.h"
 
-RobotArm::RobotArm(std::string joint_model_group_name, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
+RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
 {
+  this->controller_hand = controller_hand;
 //  this->kinematic_model = kinematic_model;
 //  this->kinematic_state = kinematic_state;
 
@@ -24,32 +25,42 @@ RobotArm::RobotArm(std::string joint_model_group_name, robot_model::RobotModelPt
 
 void RobotArm::control(vive_msgs::ViveSystem msg)
 {
-  // Skip control if no controller is assigned
-  if (!enabled)
+  // If controller hand is invalid, stop
+  if (controller_hand != 1 && controller_hand != 2) return;
+
+  // Find the controller index who's hand we've been assigned
+  int assigned_controller_index = -1;
+  for (int i = 0; i < msg.controllers.size(); ++i)
   {
-    initialized = false;
-    return;
+    if (msg.controllers[i].id == controller_hand)
+    {
+      assigned_controller_index = i;
+    }
   }
 
-  // Skip control if deactivated
-  if (!activated) {
-    return;
-  }
+  // If there's no match, don't continue
+  if (assigned_controller_index == -1) return;
 
+  // A reference to the assigned controller
   vive_msgs::Controller msg_controller = msg.controllers[assigned_controller_index];
-
-  // The controller pose in victor frame
-  //Eigen::Affine3d controller_pose = viveToVictorTranslation(pointMsgToEigen(msg_controller.posestamped.pose.position));
 
   // Update this arm's activation status
   if (msg_controller.joystick.buttons[2] == 2) {
     if (!trackpad_pressed) {
       trackpad_pressed = true;
-      activated = !activated;
+      enabled = !enabled;
     }
   } else {
     trackpad_pressed = false;
   }
+
+  // Skip control if not enabled
+  if (!enabled) {
+    return;
+  }
+
+  // The controller pose in victor frame
+  //Eigen::Affine3d controller_pose = viveToVictorTranslation(pointMsgToEigen(msg_controller.posestamped.pose.position));
 
   // Reset frame when button is pressed
   if (msg_controller.joystick.buttons[0] == 2 || !initialized)
