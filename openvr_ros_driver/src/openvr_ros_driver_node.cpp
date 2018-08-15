@@ -13,6 +13,7 @@ int main(int argc, char** argv)
   while (ros::ok())
    {
      openvr_driver.publishTrackingData();
+     openvr_driver.handleVREvent();
 
      r.sleep();
    }

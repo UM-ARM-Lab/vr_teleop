@@ -26,22 +26,21 @@ OpenVRDriver::OpenVRDriver() {
   pub = n.advertise<vive_msgs::ViveSystem>("vive", 10);
 }
 
-bool OpenVRDriver::waitForEvent() {
-  // Process VREvent
+bool OpenVRDriver::handleVREvent() {
   vr::VREvent_t event;
-  while (m_pHMD->PollNextEvent(&event, sizeof(event)))
-  {
-    // Process event
-    if (!processVREvent(event)) {
-      char buf[1024];
-      sprintf(buf, "(OpenVR) service quit\n");
-      printf("%s\n", buf);
-      //return false;
-    }
+
+  m_pHMD->PollNextEvent(&event, sizeof(event));
+
+  // Process event
+  if (!printVREvent(event)) {
+    char buf[1024];
+    sprintf(buf, "Service quit");
+    printf("%s\n", buf);
+    //return false;
   }
 }
 
-bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
+bool OpenVRDriver::printVREvent(const vr::VREvent_t &event)
 {
   switch (event.eventType)
   {
@@ -49,7 +48,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     {
       //SetupRenderModelForTrackedDevice(event.trackedDeviceIndex);
       char buf[1024];
-      sprintf(buf, "(OpenVR) Device : %d attached\n", event.trackedDeviceIndex);
+      sprintf(buf, "Device : %d attached", event.trackedDeviceIndex);
       printf("%s\n", buf);
     }
       break;
@@ -57,7 +56,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case vr::VREvent_TrackedDeviceDeactivated:
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Device : %d detached\n", event.trackedDeviceIndex);
+      sprintf(buf, "Device : %d detached", event.trackedDeviceIndex);
       printf("%s\n", buf);
     }
       break;
@@ -65,7 +64,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case vr::VREvent_TrackedDeviceUpdated:
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Device : %d updated\n", event.trackedDeviceIndex);
+      sprintf(buf, "Device : %d updated", event.trackedDeviceIndex);
       printf("%s\n", buf);
     }
       break;
@@ -73,7 +72,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_DashboardActivated) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Dashboard activated\n");
+      sprintf(buf, "Dashboard activated");
       printf("%s\n", buf);
     }
       break;
@@ -81,7 +80,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_DashboardDeactivated) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Dashboard deactivated\n");
+      sprintf(buf, "Dashboard deactivated");
       printf("%s\n", buf);
 
     }
@@ -90,7 +89,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_ChaperoneDataHasChanged) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Chaperone data has changed\n");
+      sprintf(buf, "Chaperone data has changed");
       printf("%s\n", buf);
 
     }
@@ -99,7 +98,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_ChaperoneSettingsHaveChanged) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Chaperone settings have changed\n");
+      sprintf(buf, "Chaperone settings have changed");
       printf("%s\n", buf);
     }
       break;
@@ -107,7 +106,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_ChaperoneUniverseHasChanged) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Chaperone universe has changed\n");
+      sprintf(buf, "Chaperone universe has changed");
       printf("%s\n", buf);
 
     }
@@ -116,7 +115,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_ApplicationTransitionStarted) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Application Transition: Transition has started\n");
+      sprintf(buf, "Application Transition: Transition has started");
       printf("%s\n", buf);
 
     }
@@ -125,7 +124,7 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_ApplicationTransitionNewAppStarted) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Application transition: New app has started\n");
+      sprintf(buf, "Application transition: New app has started");
       printf("%s\n", buf);
 
     }
@@ -134,48 +133,44 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_Quit) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) Received SteamVR Quit (%d", vr::VREvent_Quit, ")\n");
+      sprintf(buf, "Received SteamVR Quit (%d)", vr::VREvent_Quit);
       printf("%s\n", buf);
 
       return false;
     }
-      break;
 
     case (vr::VREvent_ProcessQuit) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) SteamVR Quit Process (%d", vr::VREvent_ProcessQuit, ")\n");
+      sprintf(buf, "SteamVR Quit Process (%d)", vr::VREvent_ProcessQuit);
       printf("%s\n", buf);
 
       return false;
     }
-      break;
 
     case (vr::VREvent_QuitAborted_UserPrompt) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) SteamVR Quit Aborted UserPrompt (%d", vr::VREvent_QuitAborted_UserPrompt, ")\n");
+      sprintf(buf, "SteamVR Quit Aborted UserPrompt (%d)", vr::VREvent_QuitAborted_UserPrompt);
       printf("%s\n", buf);
 
       return false;
     }
-      break;
 
     case (vr::VREvent_QuitAcknowledged) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) SteamVR Quit Acknowledged (%d", vr::VREvent_QuitAcknowledged, ")\n");
+      sprintf(buf, "SteamVR Quit Acknowledged (%d)", vr::VREvent_QuitAcknowledged);
       printf("%s\n", buf);
 
       return false;
     }
-      break;
 
     case (vr::VREvent_TrackedDeviceRoleChanged) :
     {
 
       char buf[1024];
-      sprintf(buf, "(OpenVR) TrackedDeviceRoleChanged: %d\n", event.trackedDeviceIndex);
+      sprintf(buf, "TrackedDeviceRoleChanged: %d", event.trackedDeviceIndex);
       printf("%s\n", buf);
       break;
     }
@@ -183,14 +178,16 @@ bool OpenVRDriver::processVREvent(const vr::VREvent_t &event)
     case (vr::VREvent_TrackedDeviceUserInteractionStarted) :
     {
       char buf[1024];
-      sprintf(buf, "(OpenVR) TrackedDeviceUserInteractionStarted: %d\n", event.trackedDeviceIndex);
+      sprintf(buf, "TrackedDeviceUserInteractionStarted: %d", event.trackedDeviceIndex);
       printf("%s\n", buf);
       break;
     }
 
     default:
+      if (event.eventType == vr::VREvent_None) break;
+
       char buf[1024];
-      sprintf(buf, "(OpenVR) Event: %d\n", event.eventType);
+      sprintf(buf, "Event: %s (%d)", vr::VRSystem()->GetEventTypeNameFromEnum((vr::EVREventType) event.eventType), event.eventType);
       printf("%s\n", buf);
       break;
   }

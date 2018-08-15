@@ -25,8 +25,8 @@ public:
   ~OpenVRDriver();
   OpenVRDriver();
 
-  bool waitForEvent();
-  bool processVREvent(const vr::VREvent_t &event);
+  bool handleVREvent();
+  bool printVREvent(const vr::VREvent_t &event);
 
   void publishTrackingData();
 };
