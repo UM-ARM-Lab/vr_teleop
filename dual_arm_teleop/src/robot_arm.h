@@ -49,7 +49,6 @@ private:
   ros::Subscriber sub_arm_status;
 
   tf::TransformBroadcaster tf_broadcaster;
-  visualization_msgs::Marker err_msg;
 
   // Methods
   void updateMeasuredState(victor_hardware_interface::MotionStatus msg);
@@ -64,9 +63,9 @@ private:
   static std::vector<double> jvqToVector(victor_hardware_interface::JointValueQuantity jvq);
 
 public:
-  bool enabled; // arm control toggle by keybind
-  bool initialized; // true if *_start_[translation/rotation] has been initialized
-  bool trackpad_pressed;
+  bool enabled = false; // arm control toggle by keybind
+  bool initialized = false; // true if *_start_[translation/rotation] has been initialized
+  bool trackpad_pressed = false;
 
   int controller_hand;
 

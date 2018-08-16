@@ -11,7 +11,6 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
   this->kinematic_model = kinematic_model;
 
   kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
-
   joint_model_group = kinematic_model->getJointModelGroup(joint_model_group_name);
 
   last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
@@ -25,8 +24,12 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
 
 void RobotArm::control(vive_msgs::ViveSystem msg)
 {
+  //std::cout << joint_model_group->getName() << " control" << std::endl;
+
   // If controller hand is invalid, stop
   if (controller_hand != 1 && controller_hand != 2) return;
+
+  //std::cout << joint_model_group->getName() << " hand valid: " << controller_hand << std::endl;
 
   // Find the controller index who's hand we've been assigned
   int assigned_controller_index = -1;
@@ -41,23 +44,21 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   // If there's no match, don't continue
   if (assigned_controller_index == -1) return;
 
+  //std::cout << joint_model_group->getName() << " assigned index: " << assigned_controller_index << std::endl;
+
   // A reference to the assigned controller
   vive_msgs::Controller msg_controller = msg.controllers[assigned_controller_index];
 
-  // Update this arm's activation status
-  if (msg_controller.joystick.buttons[2] == 2) {
-    if (!trackpad_pressed) {
-      trackpad_pressed = true;
-      enabled = !enabled;
-    }
-  } else {
-    trackpad_pressed = false;
+  // Toggle activation status
+  if (msg_controller.joystick.buttons[2] == 2 && !trackpad_pressed) {
+    enabled = !enabled;
   }
+  trackpad_pressed = (msg_controller.joystick.buttons[2] == 2);
 
   // Skip control if not enabled
-  if (!enabled) {
-    return;
-  }
+  if (!enabled) return;
+
+  //std::cout << joint_model_group->getName() << " enabled" << std::endl;
 
   // The controller pose in victor frame
   //Eigen::Affine3d controller_pose = viveToVictorTranslation(pointMsgToEigen(msg_controller.posestamped.pose.position));
@@ -132,12 +133,6 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 
     last_valid_pose = relative_pose;
     ee_start_translation = relative_pose.translation();
-
-    err_msg.text = "";
-  }
-  else
-  {
-    err_msg.text = "Did not find IK solution";
   }
 
   std::cerr << "Got " << solutions.size() << " solutions for " << joint_model_group->getName() << std::endl;
@@ -194,26 +189,26 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 
   pub_gripper.publish(msg_out_gripper);
 
-//  // Display rviz poses
-//  tf::Transform transform1;
-//  tf::poseEigenToTF(relative_pose, transform1);
-//  tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", joint_model_group->getName() + "/relative_pose"));
-//
-//  tf::Transform transform2;
-//  tf::poseEigenToTF(translationAndRotationToAffine(controller_start_translation, controller_start_rotation), transform2);
-//  tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", joint_model_group->getName() + "/reset_pose"));
-//
-//  tf::Transform transform3;
-//  tf::poseEigenToTF(poseMsgToEigen(msg_controller.posestamped.pose), transform3);
-//  tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", joint_model_group->getName() + "/global_pose"));
-//
-//  tf::Transform transform4;
-//  tf::poseEigenToTF(last_valid_pose, transform4);
-//  tf_broadcaster.sendTransform(tf::StampedTransform(transform4, ros::Time::now(), "victor_root", joint_model_group->getName() + "/last_valid_pose"));
-//
-//  tf::Transform transform5;
-//  tf::poseEigenToTF(translationAndRotationToAffine(ee_start_translation, Eigen::Quaterniond::Identity()), transform5);
-//  tf_broadcaster.sendTransform(tf::StampedTransform(transform5, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_start_translation"));
+  // Display rviz poses
+  tf::Transform transform1;
+  tf::poseEigenToTF(relative_pose, transform1);
+  tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", joint_model_group->getName() + "/relative_pose"));
+
+  tf::Transform transform2;
+  tf::poseEigenToTF(translationAndRotationToAffine(controller_start_translation, controller_start_rotation), transform2);
+  tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", joint_model_group->getName() + "/reset_pose"));
+
+  tf::Transform transform3;
+  tf::poseEigenToTF(poseMsgToEigen(msg_controller.posestamped.pose), transform3);
+  tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", joint_model_group->getName() + "/global_pose"));
+
+  tf::Transform transform4;
+  tf::poseEigenToTF(last_valid_pose, transform4);
+  tf_broadcaster.sendTransform(tf::StampedTransform(transform4, ros::Time::now(), "victor_root", joint_model_group->getName() + "/last_valid_pose"));
+
+  tf::Transform transform5;
+  tf::poseEigenToTF(translationAndRotationToAffine(ee_start_translation, Eigen::Quaterniond::Identity()), transform5);
+  tf_broadcaster.sendTransform(tf::StampedTransform(transform5, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_start_translation"));
 }
 
 void RobotArm::updateMeasuredState(victor_hardware_interface::MotionStatus msg) {

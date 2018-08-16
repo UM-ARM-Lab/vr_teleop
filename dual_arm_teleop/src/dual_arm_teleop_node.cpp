@@ -20,8 +20,7 @@ class DualArmTeleop
 private:
   ros::NodeHandle n;
   ros::Subscriber sub_vive;
-  tf::TransformBroadcaster tf_broadcaster;
-  ros::Publisher pub_rviz;
+  ros::Publisher pub_display_robot_state;
 
   robot_model::RobotModelPtr kinematic_model;
   robot_state::RobotStatePtr kinematic_state;
@@ -32,7 +31,7 @@ public:
   DualArmTeleop()
   {
     sub_vive = n.subscribe<vive_msgs::ViveSystem>("vive", 10, &DualArmTeleop::callback, this);
-    pub_rviz = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
+    pub_display_robot_state = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
 
     // Initialize kinematic model
     robot_model_loader::RobotModelLoader robot_model_load("robot_description");
