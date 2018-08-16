@@ -52,7 +52,7 @@ struct SeedDistanceFunctor
 
 struct victor_arm
 {
-  victor_arm() : activated(false), trackpad_pressed(false), enabled(false), initialized(false), ee_start_translation(Eigen::Vector3d::Identity()) {}
+  victor_arm() : activated(false), trackpad_pressed(false), enabled(false), initialized(false) {}
 
   bool activated; // true if arm is currently being teleoperated
   bool trackpad_pressed;
@@ -66,10 +66,9 @@ struct victor_arm
   std::string joint_model_group_name;
   robot_state::JointModelGroup* joint_model_group;
 
-  Eigen::Vector3d ee_start_translation;
   Eigen::Affine3d ee_last_valid_pose;
-  Eigen::Affine3d controller_last_pose;
-  Eigen::Affine3d controller_frame_diff_pose;
+  Eigen::Affine3d controller_reset_pose;
+  Eigen::Affine3d ee_reset_pose;
 
   std::vector<double> joint_position_measured;
 
@@ -108,7 +107,8 @@ public:
       victor_arms[arm].joint_model_group = kinematic_model->getJointModelGroup(victor_arms[arm].joint_model_group_name);
 
       victor_arms[arm].ee_last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group->getName() + "_link_7");
-      victor_arms[arm].ee_start_translation = victor_arms[arm].ee_last_valid_pose.translation();
+      victor_arms[arm].ee_reset_pose = kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group->getName() + "_link_7");
+
       victor_arms[arm].joint_position_measured.resize(7);
 
       victor_arms[arm].pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(victor_arms[arm].joint_model_group->getName() + "/motion_command", 10);
@@ -188,26 +188,15 @@ public:
         continue;
       }
 
-      /*
-       * Steps for reproducing brad's control method
-       *
-       * Notes:
-       * We probably want a delta approach, updating the last pose every frame
-       * We want two stored frames, one for finding the controller delta pose (we'll call last)
-       *    another for the difference of frames (we'll call frame diff)
-       * We will use the difference of frames to determine the direction to move from the delta frame
-       */
 
 
       Eigen::Affine3d controller_pose = poseMsgToEigen(msg_controller.posestamped.pose);
 
-      // Store reset and frame diff poses
+      // Store reset pose
       if (msg_controller.joystick.buttons[1] == 2 || !victor_arms[arm].initialized)
       {
-        // Record frame diff as vr_controller_frame_diff (rot only)
-        victor_arms[arm].controller_frame_diff_pose.linear() = controller_pose.linear();
-
-        victor_arms[arm].controller_last_pose = controller_pose;
+        victor_arms[arm].controller_reset_pose = controller_pose;
+        victor_arms[arm].ee_reset_pose = kinematic_state->getGlobalLinkTransform("victor_" + victor_arms[arm].joint_model_group->getName() + "_link_7");
 
         victor_arms[arm].initialized = true;
       }
@@ -215,17 +204,12 @@ public:
 
 
       // Pose representing controller delta between last and current
-      Eigen::Affine3d controller_delta_pose = Eigen::Affine3d::Identity();
-      controller_delta_pose.translation() = victor_arms[arm].controller_frame_diff_pose.linear() * (controller_pose.translation() - victor_arms[arm].controller_last_pose.translation());
-      controller_delta_pose.linear() = controller_pose.inverse().linear() * victor_arms[arm].controller_last_pose.linear();
+      Eigen::Affine3d controller_delta_pose = controller_pose.inverse() * victor_arms[arm].controller_reset_pose;
 
       // Pose representing desired end effector pose
-      Eigen::Affine3d ee_target_pose = Eigen::Affine3d::Identity();
-      ee_target_pose.translation() = victor_arms[arm].ee_last_valid_pose.translation() + controller_delta_pose.translation();
-      ee_target_pose.linear() = controller_delta_pose.linear() * victor_arms[arm].ee_last_valid_pose.linear();
+      Eigen::Affine3d ee_target_pose = victor_arms[arm].ee_reset_pose * controller_delta_pose;
 
-      // TODO: remove?
-      victor_arms[arm].controller_last_pose = controller_pose;
+
 
       // Generate IK solutions
       const kinematics::KinematicsBaseConstPtr& solver = victor_arms[arm].joint_model_group->getSolverInstance();
@@ -264,7 +248,6 @@ public:
         kinematic_state->setJointGroupPositions(victor_arms[arm].joint_model_group, slnQueue.top());
 
         victor_arms[arm].ee_last_valid_pose = ee_target_pose;
-        victor_arms[arm].controller_last_pose = controller_pose;
       }
 
       std::cerr << "Got " << solutions.size() << " solutions for " << victor_arms[arm].joint_model_group->getName() << std::endl;
@@ -325,7 +308,7 @@ public:
       tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_global, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group->getName() + "/controller_global"));
 
       tf::Transform tf_controller_reset;
-      tf::poseEigenToTF(victor_arms[arm].controller_last_pose, tf_controller_reset);
+      tf::poseEigenToTF(victor_arms[arm].controller_reset_pose, tf_controller_reset);
       tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_reset, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group->getName() + "/controller_reset"));
 
       tf::Transform tf_ee_last_valid;
@@ -335,10 +318,6 @@ public:
       tf::Transform tf_ee_target;
       tf::poseEigenToTF(ee_target_pose, tf_ee_target);
       tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_target, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group->getName() + "/ee_target_pose"));
-
-      tf::Transform tf_controller_frame_diff;
-      tf::poseEigenToTF(victor_arms[arm].controller_frame_diff_pose, tf_ee_target);
-      tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_target, ros::Time::now(), "victor_root", victor_arms[arm].joint_model_group->getName() + "/controller_frame_diff"));
     }
 
     moveit_msgs::DisplayRobotState display_robot_state;
