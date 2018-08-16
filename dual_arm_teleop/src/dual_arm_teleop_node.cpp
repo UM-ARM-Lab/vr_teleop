@@ -47,9 +47,9 @@ public:
   }
 
   void callback(vive_msgs::ViveSystem msg) {
-    for (int arm = 0; arm < 2; ++arm)
+    for (auto &victor_arm : victor_arms)
     {
-      victor_arms[arm]->control(msg);
+      victor_arm->control(msg);
     }
   }
 };
