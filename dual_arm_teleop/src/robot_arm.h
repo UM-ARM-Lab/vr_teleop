@@ -71,7 +71,7 @@ public:
   int controller_hand;
 
   // Methods
-  RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n);
+  RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, ros::NodeHandle n);
 
   void control(vive_msgs::ViveSystem msg);
 };

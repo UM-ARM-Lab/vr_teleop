@@ -1,15 +1,15 @@
 #include "robot_arm.h"
 
-RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
+///
+/// \param joint_model_group_name Name of joint model group to be controlled
+/// \param controller_hand Hand role (0 = invalid, 1 = left, 2 = right)
+/// \param kinematic_model Reference to global kinematic model
+/// \param n Reference to global node handle
+RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, ros::NodeHandle n)
 {
   this->controller_hand = controller_hand;
-//  this->kinematic_model = kinematic_model;
-//  this->kinematic_state = kinematic_state;
+  this->kinematic_model = kinematic_model;
 
-  // Initialize kinematic model
-  robot_model_loader::RobotModelLoader robot_model_load("robot_description");
-
-  kinematic_model = robot_model_load.getModel();
   kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
 
   joint_model_group = kinematic_model->getJointModelGroup(joint_model_group_name);

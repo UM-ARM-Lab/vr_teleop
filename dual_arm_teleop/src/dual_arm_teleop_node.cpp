@@ -26,10 +26,7 @@ private:
   robot_model::RobotModelPtr kinematic_model;
   robot_state::RobotStatePtr kinematic_state;
 
-  RobotArm victor_arms[2] {
-      {"left_arm", 1, kinematic_model, kinematic_state, n},
-      {"right_arm", 2, kinematic_model, kinematic_state, n}
-  };
+  RobotArm* victor_arms[2];
 
 public:
   DualArmTeleop()
@@ -44,12 +41,16 @@ public:
     kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
 
     kinematic_state->setToDefaultValues();
+
+    // Initialize each arm
+    victor_arms[0] = new RobotArm("left_arm", 1, kinematic_model, n);
+    victor_arms[1] = new RobotArm("right_arm", 2, kinematic_model, n);
   }
 
   void callback(vive_msgs::ViveSystem msg) {
     for (int arm = 0; arm < 2; ++arm)
     {
-      victor_arms[arm].control(msg);
+      victor_arms[arm]->control(msg);
     }
   }
 };
