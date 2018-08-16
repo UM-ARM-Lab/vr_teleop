@@ -1,5 +1,5 @@
 # Vive Teleop
-Vive teleop control for Victor.
+This repository contains a pipeline enabling users to control robots with virtual reality devices.
 
 ## Installation
 1. Install ROS
