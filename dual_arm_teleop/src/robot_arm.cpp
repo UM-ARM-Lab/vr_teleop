@@ -5,16 +5,18 @@
 /// \param controller_hand Hand role (0 = invalid, 1 = left, 2 = right)
 /// \param kinematic_model Reference to global kinematic model
 /// \param n Reference to global node handle
-RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, ros::NodeHandle n)
+RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
 {
   this->controller_hand = controller_hand;
   this->kinematic_model = kinematic_model;
+  this->kinematic_state = kinematic_state;
 
-  kinematic_state = std::make_shared<robot_state::RobotState>(kinematic_model);
   joint_model_group = kinematic_model->getJointModelGroup(joint_model_group_name);
 
-  last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
-  ee_start_translation = last_valid_pose.translation();
+  kinematic_state->setToDefaultValues();
+
+  ee_last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
+  ee_start_translation = ee_last_valid_pose.translation();
   joint_position_measured.resize(7);
 
   pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(joint_model_group->getName() + "/motion_command", 10);
@@ -60,40 +62,31 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 
   //std::cout << joint_model_group->getName() << " enabled" << std::endl;
 
-  // The controller pose in victor frame
-  //Eigen::Affine3d controller_pose = viveToVictorTranslation(pointMsgToEigen(msg_controller.posestamped.pose.position));
+  Eigen::Affine3d controller_pose = poseMsgToEigen(msg_controller.posestamped.pose);
 
-  // Reset frame when button is pressed
-  if (msg_controller.joystick.buttons[0] == 2 || !initialized)
+  // Store reset and frame diff poses
+  if (msg_controller.joystick.buttons[1] == 2 || !initialized)
   {
-    // Controller frame
-    controller_start_translation = pointMsgToEigen(msg_controller.posestamped.pose.position);
+    // Record frame diff as vr_controller_frame_diff (rot only)
+    controller_frame_diff_pose.linear() = controller_pose.linear();
+
+    controller_last_pose = controller_pose;
 
     initialized = true;
   }
 
-  // Reset orientation
-  if (msg_controller.joystick.buttons[1] == 2) {
-    controller_start_rotation = quatMsgToEigen(msg_controller.posestamped.pose.orientation);
-  }
+  // Pose representing controller delta between last and current
+  Eigen::Affine3d controller_delta_pose = Eigen::Affine3d::Identity();
+  controller_delta_pose.translation() = controller_frame_diff_pose.linear() * (controller_pose.translation() - controller_last_pose.translation());
+  controller_delta_pose.linear() = controller_pose.inverse().linear() * controller_last_pose.linear();
 
-  // Calculate the relative pose
-  Eigen::Affine3d relative_pose = Eigen::Affine3d::Identity();
+  // Pose representing desired end effector pose
+  Eigen::Affine3d ee_target_pose = Eigen::Affine3d::Identity();
+  ee_target_pose.translation() = ee_last_valid_pose.translation() + controller_delta_pose.translation();
+  ee_target_pose.linear() = controller_delta_pose.linear() * ee_last_valid_pose.linear();
 
-  // Base
-  relative_pose.translate(ee_start_translation);
-
-  // Translation
-  Eigen::Vector3d translation(0, 0, 0);
-  translation += viveToVictorTranslation(pointMsgToEigen(msg_controller.posestamped.pose.position));
-  translation -= viveToVictorTranslation(controller_start_translation);
-  translation *= (msg_controller.joystick.axes[1] + 1.5) * .5; // motion scaling
-
-  relative_pose.translate(translation);
-
-  // Rotation
-  relative_pose.rotate(viveToVictorRotation(quatMsgToEigen(msg_controller.posestamped.pose.orientation)));
-  relative_pose.rotate(viveToVictorRotation(controller_start_rotation).inverse());
+  // TODO: remove?
+  controller_last_pose = controller_pose;
 
   // Generate IK solutions
   const kinematics::KinematicsBaseConstPtr& solver = joint_model_group->getSolverInstance();
@@ -103,7 +96,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   kinematic_state->setToIKSolverFrame(solverTrobot, solver);
 
   // Convert to solver frame
-  Eigen::Affine3d pt_solver = solverTrobot * relative_pose;
+  Eigen::Affine3d pt_solver = solverTrobot * ee_target_pose;
 
   std::vector<geometry_msgs::Pose> target_poses;
   geometry_msgs::Pose pose;
@@ -131,8 +124,8 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
     std::priority_queue<std::vector<double>, std::vector<std::vector<double>>, SeedDistanceFunctor> slnQueue(solutions.begin(), solutions.end(), functor);
     kinematic_state->setJointGroupPositions(joint_model_group, slnQueue.top());
 
-    last_valid_pose = relative_pose;
-    ee_start_translation = relative_pose.translation();
+    ee_last_valid_pose = ee_target_pose;
+    controller_last_pose = controller_pose;
   }
 
   std::cerr << "Got " << solutions.size() << " solutions for " << joint_model_group->getName() << std::endl;
@@ -151,8 +144,6 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   msg_out_arm.joint_position.joint_5 = joint_values[4];
   msg_out_arm.joint_position.joint_6 = joint_values[5];
   msg_out_arm.joint_position.joint_7 = joint_values[6];
-
-  controller_start_translation = pointMsgToEigen(msg_controller.posestamped.pose.position);
 
   // Gripper control
   victor_hardware_interface::Robotiq3FingerCommand msg_out_gripper;
@@ -190,25 +181,25 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   pub_gripper.publish(msg_out_gripper);
 
   // Display rviz poses
-  tf::Transform transform1;
-  tf::poseEigenToTF(relative_pose, transform1);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform1, ros::Time::now(), "victor_root", joint_model_group->getName() + "/relative_pose"));
+  tf::Transform tf_controller_global;
+  tf::poseEigenToTF(controller_pose, tf_controller_global);
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_global, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_global"));
 
-  tf::Transform transform2;
-  tf::poseEigenToTF(translationAndRotationToAffine(controller_start_translation, controller_start_rotation), transform2);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform2, ros::Time::now(), "victor_root", joint_model_group->getName() + "/reset_pose"));
+  tf::Transform tf_controller_reset;
+  tf::poseEigenToTF(controller_last_pose, tf_controller_reset);
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_reset, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_reset"));
 
-  tf::Transform transform3;
-  tf::poseEigenToTF(poseMsgToEigen(msg_controller.posestamped.pose), transform3);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform3, ros::Time::now(), "victor_root", joint_model_group->getName() + "/global_pose"));
+  tf::Transform tf_ee_last_valid;
+  tf::poseEigenToTF(ee_last_valid_pose, tf_ee_last_valid);
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_last_valid, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_last_valid"));
 
-  tf::Transform transform4;
-  tf::poseEigenToTF(last_valid_pose, transform4);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform4, ros::Time::now(), "victor_root", joint_model_group->getName() + "/last_valid_pose"));
+  tf::Transform tf_ee_target;
+  tf::poseEigenToTF(ee_target_pose, tf_ee_target);
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_target, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_target"));
 
-  tf::Transform transform5;
-  tf::poseEigenToTF(translationAndRotationToAffine(ee_start_translation, Eigen::Quaterniond::Identity()), transform5);
-  tf_broadcaster.sendTransform(tf::StampedTransform(transform5, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_start_translation"));
+  tf::Transform tf_controller_frame_diff;
+  tf::poseEigenToTF(controller_frame_diff_pose, tf_controller_frame_diff);
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_frame_diff, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_frame_diff"));
 }
 
 void RobotArm::updateMeasuredState(victor_hardware_interface::MotionStatus msg) {

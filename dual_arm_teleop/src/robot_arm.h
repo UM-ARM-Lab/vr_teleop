@@ -37,9 +37,9 @@ private:
   robot_state::JointModelGroup* joint_model_group;
 
   Eigen::Vector3d ee_start_translation;
-  Eigen::Vector3d controller_start_translation;
-  Eigen::Quaterniond controller_start_rotation;
-  Eigen::Affine3d last_valid_pose;
+  Eigen::Affine3d ee_last_valid_pose;
+  Eigen::Affine3d controller_last_pose;
+  Eigen::Affine3d controller_frame_diff_pose;
 
   std::vector<double> joint_position_measured;
 
@@ -70,7 +70,7 @@ public:
   int controller_hand;
 
   // Methods
-  RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, ros::NodeHandle n);
+  RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n);
 
   void control(vive_msgs::ViveSystem msg);
 };
