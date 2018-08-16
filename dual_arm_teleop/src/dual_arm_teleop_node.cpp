@@ -15,7 +15,7 @@
 
 #include "robot_arm.h"
 
-class dual_arm_teleop
+class DualArmTeleop
 {
 private:
   ros::NodeHandle n;
@@ -32,9 +32,9 @@ private:
   };
 
 public:
-  dual_arm_teleop()
+  DualArmTeleop()
   {
-    sub_vive = n.subscribe<vive_msgs::ViveSystem>("vive", 10, &dual_arm_teleop::callback, this);
+    sub_vive = n.subscribe<vive_msgs::ViveSystem>("vive", 10, &DualArmTeleop::callback, this);
     pub_rviz = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
 
     // Initialize kinematic model
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "dual_arm_teleop_node");
 
-  dual_arm_teleop dual_arm_teleop_node;
+  DualArmTeleop dual_arm_teleop_node;
 
   ros::spin();
 
