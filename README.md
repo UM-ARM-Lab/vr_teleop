@@ -1,5 +1,5 @@
-# Vive Teleop
-This repository contains a pipeline enabling users to control robots with virtual reality devices.
+# VR Teleop
+This repository contains a pipeline enabling users to control robots with virtual reality devices. Currently, only the HTC Vive has been tested, but in theory other virtual reality devices should work.
 
 ## Installation
 1. Install ROS
