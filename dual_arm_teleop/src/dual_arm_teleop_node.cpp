@@ -188,8 +188,6 @@ public:
         continue;
       }
 
-
-
       Eigen::Affine3d controller_pose = poseMsgToEigen(msg_controller.posestamped.pose);
 
       // Store reset pose
@@ -201,15 +199,11 @@ public:
         victor_arms[arm].initialized = true;
       }
 
-
-
       // Pose representing controller delta between last and current
-      Eigen::Affine3d controller_delta_pose = controller_pose.inverse() * victor_arms[arm].controller_reset_pose;
+      Eigen::Affine3d controller_delta_pose = victor_arms[arm].controller_reset_pose.inverse() * controller_pose;
 
       // Pose representing desired end effector pose
       Eigen::Affine3d ee_target_pose = victor_arms[arm].ee_reset_pose * controller_delta_pose;
-
-
 
       // Generate IK solutions
       const kinematics::KinematicsBaseConstPtr& solver = victor_arms[arm].joint_model_group->getSolverInstance();
@@ -364,32 +358,6 @@ public:
     return out;
   }
 
-  Eigen::Affine3d poseViveToVictor(Eigen::Affine3d pose) {
-    Eigen::Matrix3d mat = pose.linear();
-    Eigen::Quaterniond q(mat);
-    return translationAndRotationToAffine(viveToVictorTranslation(pose.translation()), viveToVictorRotation(q));
-  }
-
-  Eigen::Vector3d viveToVictorTranslation(Eigen::Vector3d vive)
-  {
-    return Eigen::Vector3d(
-      -vive[2],
-      -vive[0],
-      vive[1]
-    );
-  }
-
-  Eigen::Quaterniond viveToVictorRotation(Eigen::Quaterniond vive)
-  {
-    return Eigen::Quaterniond(
-      vive.x(),
-      vive.w(),
-      -vive.y(),
-      -vive.z()
-    );
-  }
-
-
   Eigen::Vector3d pointMsgToEigen(geometry_msgs::Point point)
   {
     return Eigen::Vector3d(
@@ -402,10 +370,10 @@ public:
   Eigen::Quaterniond quatMsgToEigen(geometry_msgs::Quaternion quaternion)
   {
     return Eigen::Quaterniond(
+      quaternion.w,
       quaternion.x,
       quaternion.y,
-      quaternion.z,
-      quaternion.w
+      quaternion.z
     );
   }
 
