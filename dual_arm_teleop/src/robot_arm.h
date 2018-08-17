@@ -36,10 +36,9 @@ private:
   robot_state::RobotStatePtr kinematic_state;
   robot_state::JointModelGroup* joint_model_group;
 
-  Eigen::Vector3d ee_start_translation;
   Eigen::Affine3d ee_last_valid_pose;
-  Eigen::Affine3d controller_last_pose;
-  Eigen::Affine3d controller_frame_diff_pose;
+  Eigen::Affine3d ee_reset_pose;
+  Eigen::Affine3d controller_reset_pose;
 
   std::vector<double> joint_position_measured;
 
@@ -55,8 +54,6 @@ private:
   bool armWithinDelta(std::vector<double> joint_position_commanded);
 
   static Eigen::Affine3d translationAndRotationToAffine(Eigen::Vector3d translation, Eigen::Quaterniond rotation);
-  static Eigen::Vector3d viveToVictorTranslation(Eigen::Vector3d vive);
-  static Eigen::Quaterniond viveToVictorRotation(Eigen::Quaterniond vive);
   static Eigen::Vector3d pointMsgToEigen(geometry_msgs::Point point);
   static Eigen::Quaterniond quatMsgToEigen(geometry_msgs::Quaternion quaternion);
   static Eigen::Affine3d poseMsgToEigen(geometry_msgs::Pose pose);

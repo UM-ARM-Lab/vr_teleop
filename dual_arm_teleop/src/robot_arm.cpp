@@ -16,7 +16,6 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
   kinematic_state->setToDefaultValues();
 
   ee_last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
-  ee_start_translation = ee_last_valid_pose.translation();
   joint_position_measured.resize(7);
 
   pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(joint_model_group->getName() + "/motion_command", 10);
@@ -26,12 +25,8 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
 
 void RobotArm::control(vive_msgs::ViveSystem msg)
 {
-  //std::cout << joint_model_group->getName() << " control" << std::endl;
-
   // If controller hand is invalid, stop
   if (controller_hand != 1 && controller_hand != 2) return;
-
-  //std::cout << joint_model_group->getName() << " hand valid: " << controller_hand << std::endl;
 
   // Find the controller index who's hand we've been assigned
   int assigned_controller_index = -1;
@@ -46,8 +41,6 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   // If there's no match, don't continue
   if (assigned_controller_index == -1) return;
 
-  //std::cout << joint_model_group->getName() << " assigned index: " << assigned_controller_index << std::endl;
-
   // A reference to the assigned controller
   vive_msgs::Controller msg_controller = msg.controllers[assigned_controller_index];
 
@@ -60,33 +53,22 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   // Skip control if not enabled
   if (!enabled) return;
 
-  //std::cout << joint_model_group->getName() << " enabled" << std::endl;
-
   Eigen::Affine3d controller_pose = poseMsgToEigen(msg_controller.posestamped.pose);
 
-  // Store reset and frame diff poses
+  // Store reset pose
   if (msg_controller.joystick.buttons[1] == 2 || !initialized)
   {
-    // Record frame diff as vr_controller_frame_diff (rot only)
-    controller_frame_diff_pose.linear() = controller_pose.linear();
-
-    controller_last_pose = controller_pose;
+    controller_reset_pose = controller_pose;
+    ee_reset_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
 
     initialized = true;
   }
 
   // Pose representing controller delta between last and current
-  Eigen::Affine3d controller_delta_pose = Eigen::Affine3d::Identity();
-  controller_delta_pose.translation() = controller_frame_diff_pose.linear() * (controller_pose.translation() - controller_last_pose.translation());
-  controller_delta_pose.linear() = controller_pose.inverse().linear() * controller_last_pose.linear();
+  Eigen::Affine3d controller_delta_pose = controller_reset_pose.inverse() * controller_pose;
 
   // Pose representing desired end effector pose
-  Eigen::Affine3d ee_target_pose = Eigen::Affine3d::Identity();
-  ee_target_pose.translation() = ee_last_valid_pose.translation() + controller_delta_pose.translation();
-  ee_target_pose.linear() = controller_delta_pose.linear() * ee_last_valid_pose.linear();
-
-  // TODO: remove?
-  controller_last_pose = controller_pose;
+  Eigen::Affine3d ee_target_pose = ee_reset_pose * controller_delta_pose;
 
   // Generate IK solutions
   const kinematics::KinematicsBaseConstPtr& solver = joint_model_group->getSolverInstance();
@@ -125,7 +107,6 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
     kinematic_state->setJointGroupPositions(joint_model_group, slnQueue.top());
 
     ee_last_valid_pose = ee_target_pose;
-    controller_last_pose = controller_pose;
   }
 
   std::cerr << "Got " << solutions.size() << " solutions for " << joint_model_group->getName() << std::endl;
@@ -186,7 +167,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_global, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_global"));
 
   tf::Transform tf_controller_reset;
-  tf::poseEigenToTF(controller_last_pose, tf_controller_reset);
+  tf::poseEigenToTF(controller_reset_pose, tf_controller_reset);
   tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_reset, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_reset"));
 
   tf::Transform tf_ee_last_valid;
@@ -196,10 +177,6 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   tf::Transform tf_ee_target;
   tf::poseEigenToTF(ee_target_pose, tf_ee_target);
   tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_target, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_target"));
-
-  tf::Transform tf_controller_frame_diff;
-  tf::poseEigenToTF(controller_frame_diff_pose, tf_controller_frame_diff);
-  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_frame_diff, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_frame_diff"));
 }
 
 void RobotArm::updateMeasuredState(victor_hardware_interface::MotionStatus msg) {
@@ -231,26 +208,6 @@ Eigen::Affine3d RobotArm::translationAndRotationToAffine(Eigen::Vector3d transla
   return out;
 }
 
-Eigen::Vector3d RobotArm::viveToVictorTranslation(Eigen::Vector3d vive)
-{
-  return Eigen::Vector3d(
-      -vive[2],
-      -vive[0],
-      vive[1]
-  );
-}
-
-Eigen::Quaterniond RobotArm::viveToVictorRotation(Eigen::Quaterniond vive)
-{
-  return Eigen::Quaterniond(
-      vive.x(),
-      vive.w(),
-      -vive.y(),
-      -vive.z()
-  );
-}
-
-
 Eigen::Vector3d RobotArm::pointMsgToEigen(geometry_msgs::Point point)
 {
   return Eigen::Vector3d(
@@ -263,10 +220,10 @@ Eigen::Vector3d RobotArm::pointMsgToEigen(geometry_msgs::Point point)
 Eigen::Quaterniond RobotArm::quatMsgToEigen(geometry_msgs::Quaternion quaternion)
 {
   return Eigen::Quaterniond(
+      quaternion.w,
       quaternion.x,
       quaternion.y,
-      quaternion.z,
-      quaternion.w
+      quaternion.z
   );
 }
 
