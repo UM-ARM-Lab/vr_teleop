@@ -49,6 +49,12 @@ private:
 
   tf::TransformBroadcaster tf_broadcaster;
 
+  bool enabled = false; // arm control toggle by keybind
+  bool initialized = false; // true if *_start_[translation/rotation] has been initialized
+  bool trackpad_pressed = false;
+
+  int controller_hand;
+
   // Methods
   void updateMeasuredState(victor_hardware_interface::MotionStatus msg);
   bool armWithinDelta(std::vector<double> joint_position_commanded);
@@ -60,12 +66,6 @@ private:
   static std::vector<double> jvqToVector(victor_hardware_interface::JointValueQuantity jvq);
 
 public:
-  bool enabled = false; // arm control toggle by keybind
-  bool initialized = false; // true if *_start_[translation/rotation] has been initialized
-  bool trackpad_pressed = false;
-
-  int controller_hand;
-
   // Methods
   RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n);
 
