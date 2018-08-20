@@ -59,7 +59,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   if (msg_controller.joystick.buttons[1] == 2 || !initialized)
   {
     controller_reset_pose = controller_pose;
-    ee_reset_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
+    ee_reset_pose = ee_last_valid_pose;
 
     initialized = true;
   }
