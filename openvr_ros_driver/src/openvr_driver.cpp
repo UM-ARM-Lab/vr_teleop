@@ -20,7 +20,7 @@ OpenVRDriver::OpenVRDriver() {
 bool OpenVRDriver::handleVREvent() {
   vr::VREvent_t event;
 
-  m_pHMD->PollNextEvent(&event, sizeof(event));
+  if (!m_pHMD->PollNextEvent(&event, sizeof(event))) return true;
 
   // Process event
   if (!printVREvent(event)) {
