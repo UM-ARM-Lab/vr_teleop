@@ -2,6 +2,8 @@
 This repository contains a pipeline enabling users to control robots with virtual reality devices. Currently, only the HTC Vive has been tested, but in theory other virtual reality devices should work with minor tweaking.
 
 ## Installation
+Note: this pipeline has been tested on a GeForce video card running nvidia-390 drivers, on Ubuntu 16.04. Other setups may or may not work out of the box.
+
 1. Install ROS
 
    Follow all the instructions to install ROS Kinetic. Please make sure you have followed all steps, including calls to rosdep.  
