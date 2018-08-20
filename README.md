@@ -56,16 +56,15 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
 ![alt-text][vive-controller-layout]
 
 The controls for operating the robot are as follows:
-1. **Menu button** - Position lock
+1. **Menu button**
 2. **Trackpad**  
-   Vertical axis - motion scaling adjustment while touching  
    Button click - Toggle on/off teleop control
 3. **System button**
 4. **Status light**
 5. **Micro-USB port**
 6. **Tracking sensor**
 7. **Trigger** - Gripper control
-8. **Grip button** - Orientation reset
+8. **Grip button** - Orientation reset/position lock
 
 
 ## Troubleshooting
