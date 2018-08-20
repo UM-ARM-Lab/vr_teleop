@@ -22,7 +22,6 @@ private:
   vr::HmdQuaternion_t getRotation(vr::HmdMatrix34_t matrix);
 
 public:
-  ~OpenVRDriver();
   OpenVRDriver();
 
   bool handleVREvent();

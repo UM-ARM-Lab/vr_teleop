@@ -1,14 +1,5 @@
 #include "openvr_driver.h"
 
-// Destructor
-OpenVRDriver::~OpenVRDriver() {
-  if (m_pHMD != NULL)
-  {
-    vr::VR_Shutdown();
-    m_pHMD = NULL;
-  }
-}
-
 // Constructor
 OpenVRDriver::OpenVRDriver() {
   vr::EVRInitError eError = vr::VRInitError_None;
@@ -234,15 +225,9 @@ void OpenVRDriver::publishTrackingData() {
     vr::TrackedDevicePose_t *devicePose = &trackedDevicePose;
 
     vr::VRControllerState_t controllerState;
-    vr::VRControllerState_t *ontrollerState_ptr = &controllerState;
 
     vr::HmdVector3_t position;
     vr::HmdQuaternion_t quaternion;
-
-    bool bPoseValid = trackedDevicePose.bPoseIsValid;
-    vr::HmdVector3_t vVel;
-    vr::HmdVector3_t vAngVel;
-    vr::ETrackingResult eTrackingResult;
 
     // Get what type of device it is and work with its data
     vr::ETrackedDeviceClass trackedDeviceClass = vr::VRSystem()->GetTrackedDeviceClass(unDevice);
@@ -253,11 +238,6 @@ void OpenVRDriver::publishTrackingData() {
 
         position = getPosition(devicePose->mDeviceToAbsoluteTracking);
         quaternion = getRotation(devicePose->mDeviceToAbsoluteTracking);
-
-        vVel = trackedDevicePose.vVelocity;
-        vAngVel = trackedDevicePose.vAngularVelocity;
-        eTrackingResult = trackedDevicePose.eTrackingResult;
-        bPoseValid = trackedDevicePose.bPoseIsValid;
 
         vive_msgs::HeadMountedDisplay msg_hmd;
 
@@ -285,11 +265,6 @@ void OpenVRDriver::publishTrackingData() {
 
         position = getPosition(devicePose->mDeviceToAbsoluteTracking);
         quaternion = getRotation(devicePose->mDeviceToAbsoluteTracking);
-
-        vVel = trackedDevicePose.vVelocity;
-        vAngVel = trackedDevicePose.vAngularVelocity;
-        eTrackingResult = trackedDevicePose.eTrackingResult;
-        bPoseValid = trackedDevicePose.bPoseIsValid;
 
         vive_msgs::Controller msg_controller;
 
@@ -338,19 +313,6 @@ void OpenVRDriver::publishTrackingData() {
 
         break;
       }
-
-      case vr::ETrackedDeviceClass::TrackedDeviceClass_TrackingReference:
-        vr::VRSystem()->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, &trackedDevicePose, 1);
-
-        position = getPosition(devicePose->mDeviceToAbsoluteTracking);
-        quaternion = getRotation(devicePose->mDeviceToAbsoluteTracking);
-
-        vVel = trackedDevicePose.vVelocity;
-        vAngVel = trackedDevicePose.vAngularVelocity;
-        eTrackingResult = trackedDevicePose.eTrackingResult;
-        bPoseValid = trackedDevicePose.bPoseIsValid;
-
-        break;
     }
   }
 
