@@ -1,7 +1,9 @@
 # VR Teleop
-This repository contains a pipeline enabling users to control robots with virtual reality devices. Currently, only the HTC Vive has been tested, but in theory other virtual reality devices should work.
+This repository contains a pipeline enabling users to control robots with virtual reality devices. Currently, only the HTC Vive has been tested, but in theory other virtual reality devices should work with minor tweaking.
 
 ## Installation
+Note: this pipeline has been tested on a GeForce video card running nvidia-390 drivers, on Ubuntu 16.04. Other setups may or may not work out of the box.
+
 1. Install ROS
 
    Follow all the instructions to install ROS Kinetic. Please make sure you have followed all steps, including calls to rosdep.  
@@ -32,7 +34,7 @@ This repository contains a pipeline enabling users to control robots with virtua
 4. Clone arc_utilities into catkin workspace  
    `git clone https://github.com/UM-ARM-Lab/arc_utilities.git`  
 5. **Recursively** clone this repository into catkin workspace  
-   `git clone https://github.com/UM-ARM-Lab/vive_teleop.git --recursive`
+   `git clone --recurse-submodules https://github.com/UM-ARM-Lab/vr_teleop.git`
 6. Build the entire catkin workspace
 
 ## Usage
@@ -48,7 +50,7 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
 
 3. In a new terminal, run `roscore`
 4. In a new terminal, run openvr_ros_driver using 
-`~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vive_teleop/openvr_ros_driver/openvr_ros_driver_node`
+`~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vr_teleop/openvr_ros_driver/openvr_ros_driver_node`
 5. In a new terminal, run dual_arm_teleop using 
 `roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
 
