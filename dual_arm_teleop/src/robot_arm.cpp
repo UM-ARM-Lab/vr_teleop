@@ -226,10 +226,10 @@ Eigen::Quaterniond RobotArm::quatMsgToEigen(geometry_msgs::Quaternion quaternion
       quaternion.z
   );
 
-  // Rotate 180 degrees to correct controller orientation
-  Eigen::Quaterniond rot(0, 0, 1, 0);
+  // Rotate to correct controller orientation
+  Eigen::AngleAxisd rot(M_PI, Eigen::Vector3d::UnitX());
 
-  return rot * q;
+  return q * rot;
 }
 
 Eigen::Affine3d RobotArm::poseMsgToEigen(geometry_msgs::Pose pose)
