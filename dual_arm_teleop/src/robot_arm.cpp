@@ -21,6 +21,8 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
   pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(joint_model_group->getName() + "/motion_command", 10);
   pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(joint_model_group->getName() + "/gripper_command", 10);
   sub_arm_status = n.subscribe(joint_model_group->getName() + "/motion_status", 10, &RobotArm::callbackArmStatusUpdate, this);
+
+  pub_controller_mesh = n.advertise<visualization_msgs::Marker>(joint_model_group->getName() + "/controller_mesh", 10);
 }
 
 void RobotArm::control(vive_msgs::ViveSystem msg)
@@ -57,8 +59,10 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   tf::poseMsgToEigen(msg_controller.posestamped.pose, controller_pose);
 
   // Rotate to correct controller orientation
-  Eigen::AngleAxisd rotX(M_PI, Eigen::Vector3d::UnitX());
-  controller_pose = controller_pose * rotX;
+  Eigen::AngleAxisd rotX(M_PI/2, Eigen::Vector3d::UnitX());
+  Eigen::AngleAxisd rotY(M_PI/2, Eigen::Vector3d::UnitY());
+  Eigen::AngleAxisd rotZ(M_PI/2, Eigen::Vector3d::UnitZ());
+  controller_pose = controller_pose;// * rotY * rotZ;
 
   // Store reset pose
   if (msg_controller.joystick.buttons[1] == 2 || !initialized)
@@ -175,6 +179,34 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   tf::Transform tf_ee_target;
   tf::poseEigenToTF(ee_target_pose, tf_ee_target);
   tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_target, ros::Time::now(), kinematic_model->getRootLinkName(), joint_model_group->getName() + "/ee_target"));
+
+  // Display controller mesh
+  visualization_msgs::Marker msg_out_controller_mesh;
+
+  msg_out_controller_mesh.header.stamp = ros::Time::now();
+  msg_out_controller_mesh.header.frame_id = kinematic_model->getRootLinkName();
+  msg_out_controller_mesh.ns = "vive";
+  msg_out_controller_mesh.type = 10;
+
+  tf::poseEigenToMsg(ee_target_pose, msg_out_controller_mesh.pose);
+
+  msg_out_controller_mesh.scale.x = 1;
+  msg_out_controller_mesh.scale.y = 1;
+  msg_out_controller_mesh.scale.z = 1;
+
+  std_msgs::ColorRGBA color;
+  color.r = 1;
+  color.g = 1;
+  color.b = 1;
+  color.a = 1;
+  msg_out_controller_mesh.color = color;
+
+  msg_out_controller_mesh.text = "controller_mesh";
+  msg_out_controller_mesh.mesh_resource = "file:///home/andriym/.steam/steam/steamapps/common/SteamVR/resources/rendermodels/vr_controller_vive_1_5/body.obj";
+  msg_out_controller_mesh.mesh_use_embedded_materials = 0;
+
+  pub_controller_mesh.publish(msg_out_controller_mesh);
+
 }
 
 bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded)

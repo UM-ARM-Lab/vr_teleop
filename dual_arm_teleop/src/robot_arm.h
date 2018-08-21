@@ -51,6 +51,7 @@ private:
   ros::Subscriber sub_arm_status;
 
   tf::TransformBroadcaster tf_broadcaster;
+  ros::Publisher pub_controller_mesh;
 
   bool enabled = false; // arm control toggle by keybind
   bool initialized = false; // true if *_start_[translation/rotation] has been initialized
