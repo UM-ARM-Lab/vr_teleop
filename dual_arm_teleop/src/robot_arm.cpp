@@ -118,8 +118,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 
   // Arm control
   victor_hardware_interface::MotionCommand msg_out_arm;
-  // HACK: Victor fake hardware interface currently doesn't support impedance mode
-  //msg_out_arm.control_mode.mode = 2;
+  msg_out_arm.control_mode.mode = 2;
 
   std::vector<double> joint_values;
   kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
