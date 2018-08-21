@@ -20,13 +20,16 @@
 #include <victor_hardware_interface/MotionStatus.h>
 #include <victor_hardware_interface/Robotiq3FingerCommand.h>
 #include <victor_hardware_interface/Robotiq3FingerStatus.h>
+#include <victor_hardware_interface/victor_utils.hpp>
 
 // TF
 #include <tf/transform_broadcaster.h>
 #include <tf_conversions/tf_eigen.h>
 
-// rviz
-#include <rviz_visual_tools/rviz_visual_tools.h>
+// Eigen
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <eigen_conversions/eigen_msg.h>
 
 class RobotArm
 {
@@ -58,12 +61,6 @@ private:
   // Methods
   void updateMeasuredState(victor_hardware_interface::MotionStatus msg);
   bool armWithinDelta(std::vector<double> joint_position_commanded);
-
-  static Eigen::Affine3d translationAndRotationToAffine(Eigen::Vector3d translation, Eigen::Quaterniond rotation);
-  static Eigen::Vector3d pointMsgToEigen(geometry_msgs::Point point);
-  static Eigen::Quaterniond quatMsgToEigen(geometry_msgs::Quaternion quaternion);
-  static Eigen::Affine3d poseMsgToEigen(geometry_msgs::Pose pose);
-  static std::vector<double> jvqToVector(victor_hardware_interface::JointValueQuantity jvq);
 
 public:
   // Methods
