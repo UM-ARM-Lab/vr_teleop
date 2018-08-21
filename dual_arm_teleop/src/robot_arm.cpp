@@ -53,7 +53,12 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   // Skip control if not enabled
   if (!enabled) return;
 
-  Eigen::Affine3d controller_pose = poseMsgToEigen(msg_controller.posestamped.pose);
+  Eigen::Affine3d controller_pose;
+  tf::poseMsgToEigen(msg_controller.posestamped.pose, controller_pose);
+
+  // Rotate to correct controller orientation
+  Eigen::AngleAxisd rot(M_PI, Eigen::Vector3d::UnitX());
+  controller_pose = controller_pose * rot;
 
   // Store reset pose
   if (msg_controller.joystick.buttons[1] == 2 || !initialized)
@@ -82,14 +87,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 
   std::vector<geometry_msgs::Pose> target_poses;
   geometry_msgs::Pose pose;
-  Eigen::Quaterniond q(pt_solver.linear());
-  pose.position.x = pt_solver.translation().x();
-  pose.position.y = pt_solver.translation().y();
-  pose.position.z = pt_solver.translation().z();
-  pose.orientation.x = q.x();
-  pose.orientation.y = q.y();
-  pose.orientation.z = q.z();
-  pose.orientation.w = q.w();
+  tf::poseEigenToMsg(pt_solver, pose);
   target_poses.push_back(pose);
 
   std::vector<double> seed = joint_position_measured;
@@ -155,7 +153,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   msg_out_gripper.finger_c_command = finger_c;
 
   // Publish state messages
-  if (armWithinDelta(jvqToVector(msg_out_arm.joint_position))) {
+  if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position))) {
     pub_arm.publish(msg_out_arm);
   }
 
@@ -180,7 +178,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 }
 
 void RobotArm::updateMeasuredState(victor_hardware_interface::MotionStatus msg) {
-  joint_position_measured = jvqToVector(msg.measured_joint_position);
+  joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);
 }
 
 bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded)
@@ -199,47 +197,3 @@ bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded)
 
   return distance < .7;
 }
-
-Eigen::Affine3d RobotArm::translationAndRotationToAffine(Eigen::Vector3d translation, Eigen::Quaterniond rotation)
-{
-  Eigen::Affine3d out = Eigen::Affine3d::Identity();
-  out.translate(translation);
-  out.rotate(rotation);
-  return out;
-}
-
-Eigen::Vector3d RobotArm::pointMsgToEigen(geometry_msgs::Point point)
-{
-  return Eigen::Vector3d(
-      point.x,
-      point.y,
-      point.z
-  );
-}
-
-Eigen::Quaterniond RobotArm::quatMsgToEigen(geometry_msgs::Quaternion quaternion)
-{
-  Eigen::Quaterniond q(
-      quaternion.w,
-      quaternion.x,
-      quaternion.y,
-      quaternion.z
-  );
-
-  // Rotate to correct controller orientation
-  Eigen::AngleAxisd rot(M_PI, Eigen::Vector3d::UnitX());
-
-  return q * rot;
-}
-
-Eigen::Affine3d RobotArm::poseMsgToEigen(geometry_msgs::Pose pose)
-{
-  return translationAndRotationToAffine(pointMsgToEigen(pose.position), quatMsgToEigen(pose.orientation));
-}
-
-std::vector<double> RobotArm::jvqToVector(victor_hardware_interface::JointValueQuantity jvq)
-{
-  std::vector<double> v{jvq.joint_1, jvq.joint_2, jvq.joint_3, jvq.joint_4,
-                        jvq.joint_5, jvq.joint_6, jvq.joint_7};
-  return v;
-};
