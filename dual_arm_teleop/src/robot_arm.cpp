@@ -57,8 +57,8 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   tf::poseMsgToEigen(msg_controller.posestamped.pose, controller_pose);
 
   // Rotate to correct controller orientation
-  Eigen::AngleAxisd rot(M_PI, Eigen::Vector3d::UnitX());
-  controller_pose = controller_pose * rot;
+  Eigen::AngleAxisd rotX(M_PI, Eigen::Vector3d::UnitX());
+  controller_pose = controller_pose * rotX;
 
   // Store reset pose
   if (msg_controller.joystick.buttons[1] == 2 || !initialized)
@@ -67,6 +67,13 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
     ee_reset_pose = ee_last_valid_pose;
 
     initialized = true;
+  }
+
+  // Position lock
+  if (msg_controller.joystick.buttons[0] == 2)
+  {
+    controller_reset_pose.translation() = controller_pose.translation();
+    ee_reset_pose.translation() = ee_last_valid_pose.translation();
   }
 
   // Pose representing controller delta between last and current
@@ -111,7 +118,8 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
 
   // Arm control
   victor_hardware_interface::MotionCommand msg_out_arm;
-  msg_out_arm.control_mode.mode = 2;
+  // HACK: Victor fake hardware interface currently doesn't support impedance mode
+  //msg_out_arm.control_mode.mode = 2;
 
   std::vector<double> joint_values;
   kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
