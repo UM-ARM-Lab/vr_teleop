@@ -22,13 +22,7 @@ bool OpenVRDriver::handleVREvent() {
 
   if (!m_pHMD->PollNextEvent(&event, sizeof(event))) return true;
 
-  // Process event
-  if (!printVREvent(event)) {
-    char buf[1024];
-    sprintf(buf, "Service quit");
-    printf("%s\n", buf);
-    //return false;
-  }
+  printVREvent(event);
 }
 
 bool OpenVRDriver::printVREvent(const vr::VREvent_t &event)
