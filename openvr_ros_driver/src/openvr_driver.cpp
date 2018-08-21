@@ -36,150 +36,27 @@ bool OpenVRDriver::printVREvent(const vr::VREvent_t &event)
   switch (event.eventType)
   {
     case vr::VREvent_TrackedDeviceActivated:
-    {
-      //SetupRenderModelForTrackedDevice(event.trackedDeviceIndex);
-      char buf[1024];
-      sprintf(buf, "Device : %d attached", event.trackedDeviceIndex);
-      printf("%s\n", buf);
-    }
+      std::cout << "Device " << event.trackedDeviceIndex << " attached" << std::endl;
       break;
 
     case vr::VREvent_TrackedDeviceDeactivated:
-    {
-      char buf[1024];
-      sprintf(buf, "Device : %d detached", event.trackedDeviceIndex);
-      printf("%s\n", buf);
-    }
+      std::cout << "Device " << event.trackedDeviceIndex << " detached" << std::endl;
       break;
 
     case vr::VREvent_TrackedDeviceUpdated:
-    {
-      char buf[1024];
-      sprintf(buf, "Device : %d updated", event.trackedDeviceIndex);
-      printf("%s\n", buf);
-    }
+      std::cout << "Device " << event.trackedDeviceIndex << " updated" << std::endl;
       break;
 
-    case (vr::VREvent_DashboardActivated) :
-    {
-      char buf[1024];
-      sprintf(buf, "Dashboard activated");
-      printf("%s\n", buf);
-    }
+    case vr::VREvent_TrackedDeviceRoleChanged:
+      std::cout << "TrackedDeviceRoleChanged: " << event.trackedDeviceIndex << std::endl;
       break;
 
-    case (vr::VREvent_DashboardDeactivated) :
-    {
-      char buf[1024];
-      sprintf(buf, "Dashboard deactivated");
-      printf("%s\n", buf);
-
-    }
+    case vr::VREvent_TrackedDeviceUserInteractionStarted:
+      std::cout << "TrackedDeviceUserInteractionStarted: " << event.trackedDeviceIndex << std::endl;
       break;
-
-    case (vr::VREvent_ChaperoneDataHasChanged) :
-    {
-      char buf[1024];
-      sprintf(buf, "Chaperone data has changed");
-      printf("%s\n", buf);
-
-    }
-      break;
-
-    case (vr::VREvent_ChaperoneSettingsHaveChanged) :
-    {
-      char buf[1024];
-      sprintf(buf, "Chaperone settings have changed");
-      printf("%s\n", buf);
-    }
-      break;
-
-    case (vr::VREvent_ChaperoneUniverseHasChanged) :
-    {
-      char buf[1024];
-      sprintf(buf, "Chaperone universe has changed");
-      printf("%s\n", buf);
-
-    }
-      break;
-
-    case (vr::VREvent_ApplicationTransitionStarted) :
-    {
-      char buf[1024];
-      sprintf(buf, "Application Transition: Transition has started");
-      printf("%s\n", buf);
-
-    }
-      break;
-
-    case (vr::VREvent_ApplicationTransitionNewAppStarted) :
-    {
-      char buf[1024];
-      sprintf(buf, "Application transition: New app has started");
-      printf("%s\n", buf);
-
-    }
-      break;
-
-    case (vr::VREvent_Quit) :
-    {
-      char buf[1024];
-      sprintf(buf, "Received SteamVR Quit (%d)", vr::VREvent_Quit);
-      printf("%s\n", buf);
-
-      return false;
-    }
-
-    case (vr::VREvent_ProcessQuit) :
-    {
-      char buf[1024];
-      sprintf(buf, "SteamVR Quit Process (%d)", vr::VREvent_ProcessQuit);
-      printf("%s\n", buf);
-
-      return false;
-    }
-
-    case (vr::VREvent_QuitAborted_UserPrompt) :
-    {
-      char buf[1024];
-      sprintf(buf, "SteamVR Quit Aborted UserPrompt (%d)", vr::VREvent_QuitAborted_UserPrompt);
-      printf("%s\n", buf);
-
-      return false;
-    }
-
-    case (vr::VREvent_QuitAcknowledged) :
-    {
-      char buf[1024];
-      sprintf(buf, "SteamVR Quit Acknowledged (%d)", vr::VREvent_QuitAcknowledged);
-      printf("%s\n", buf);
-
-      return false;
-    }
-
-    case (vr::VREvent_TrackedDeviceRoleChanged) :
-    {
-
-      char buf[1024];
-      sprintf(buf, "TrackedDeviceRoleChanged: %d", event.trackedDeviceIndex);
-      printf("%s\n", buf);
-      break;
-    }
-
-    case (vr::VREvent_TrackedDeviceUserInteractionStarted) :
-    {
-      char buf[1024];
-      sprintf(buf, "TrackedDeviceUserInteractionStarted: %d", event.trackedDeviceIndex);
-      printf("%s\n", buf);
-      break;
-    }
 
     default:
-      if (event.eventType == vr::VREvent_None) break;
-
-      char buf[1024];
-      sprintf(buf, "Event: %s (%d)", vr::VRSystem()->GetEventTypeNameFromEnum((vr::EVREventType) event.eventType), event.eventType);
-      printf("%s\n", buf);
+      std::cout << vr::VRSystem()->GetEventTypeNameFromEnum((vr::EVREventType) event.eventType) << " (" <<  event.eventType << ")" << std::endl;
       break;
   }
 
