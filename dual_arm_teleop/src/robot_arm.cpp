@@ -15,12 +15,12 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
 
   kinematic_state->setToDefaultValues();
 
-  ee_last_valid_pose = kinematic_state->getGlobalLinkTransform("victor_" + joint_model_group->getName() + "_link_7");
+  ee_last_valid_pose = kinematic_state->getGlobalLinkTransform(joint_model_group->getLinkModelNames().back());
   joint_position_measured.resize(7);
 
   pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(joint_model_group->getName() + "/motion_command", 10);
   pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(joint_model_group->getName() + "/gripper_command", 10);
-  sub_arm_status = n.subscribe(joint_model_group->getName() + "/motion_status", 10, &RobotArm::updateMeasuredState, this);
+  sub_arm_status = n.subscribe(joint_model_group->getName() + "/motion_status", 10, &RobotArm::callbackArmStatusUpdate, this);
 }
 
 void RobotArm::control(vive_msgs::ViveSystem msg)
@@ -155,23 +155,19 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
   // Display rviz poses
   tf::Transform tf_controller_global;
   tf::poseEigenToTF(controller_pose, tf_controller_global);
-  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_global, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_global"));
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_global, ros::Time::now(), kinematic_model->getRootLinkName(), joint_model_group->getName() + "/controller_global"));
 
   tf::Transform tf_controller_reset;
   tf::poseEigenToTF(controller_reset_pose, tf_controller_reset);
-  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_reset, ros::Time::now(), "victor_root", joint_model_group->getName() + "/controller_reset"));
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_controller_reset, ros::Time::now(), kinematic_model->getRootLinkName(), joint_model_group->getName() + "/controller_reset"));
 
   tf::Transform tf_ee_last_valid;
   tf::poseEigenToTF(ee_last_valid_pose, tf_ee_last_valid);
-  tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_last_valid, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_last_valid"));
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_last_valid, ros::Time::now(), kinematic_model->getRootLinkName(), joint_model_group->getName() + "/ee_last_valid"));
 
   tf::Transform tf_ee_target;
   tf::poseEigenToTF(ee_target_pose, tf_ee_target);
-  tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_target, ros::Time::now(), "victor_root", joint_model_group->getName() + "/ee_target"));
-}
-
-void RobotArm::updateMeasuredState(victor_hardware_interface::MotionStatus msg) {
-  joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);
+  tf_broadcaster.sendTransform(tf::StampedTransform(tf_ee_target, ros::Time::now(), kinematic_model->getRootLinkName(), joint_model_group->getName() + "/ee_target"));
 }
 
 bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded)
@@ -189,4 +185,8 @@ bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded)
   std::cout << "Joint space error for " << joint_model_group->getName() << ": " << distance << std::endl;
 
   return distance < .7;
+}
+
+void RobotArm::callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg) {
+  joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);
 }

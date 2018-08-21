@@ -59,8 +59,8 @@ private:
   int controller_hand;
 
   // Methods
-  void updateMeasuredState(victor_hardware_interface::MotionStatus msg);
   bool armWithinDelta(std::vector<double> joint_position_commanded);
+  void callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg);
 
 public:
   // Methods
