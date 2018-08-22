@@ -55,7 +55,8 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
    `roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
 6. In a new terminal, run rviz using  
    `rviz src/vr_teleop/dual_arm_teleop/launch/moveit.rviz`
-7. Launch the 
+
+At this point, you can either launch the real victor or the fake victor. The teleop node publishes commands in impedance mode.
 
 ### Controls
 ![alt-text][vive-controller-layout]
