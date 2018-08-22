@@ -7,13 +7,13 @@
     <arg name="load_robot_description" value="true"/>
   </include>
 
-  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
-  <include file="$(find victor_moveit_config)/launch/move_group.launch">
-    <arg name="allow_trajectory_execution" value="true"/>
-    <arg name="fake_execution" value="true"/>
-    <arg name="info" value="true"/>
-    <arg name="debug" value="$(arg debug)"/>
-  </include>
+  <!--&lt;!&ndash; Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) &ndash;&gt;-->
+  <!--<include file="$(find victor_moveit_config)/launch/move_group.launch">-->
+    <!--<arg name="allow_trajectory_execution" value="true"/>-->
+    <!--<arg name="fake_execution" value="true"/>-->
+    <!--<arg name="info" value="true"/>-->
+    <!--<arg name="debug" value="$(arg debug)"/>-->
+  <!--</include>-->
 
   <node pkg="dual_arm_teleop"
         type="dual_arm_teleop_node"
