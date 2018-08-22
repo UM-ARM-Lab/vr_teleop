@@ -49,16 +49,18 @@ Note: this pipeline has been tested on a GeForce video card running nvidia-390 d
 Remember to have your catkin workspace sourced and cd into it for each of the below steps. (example: `source ~/catkin_ws/devel/setup.bash && cd ~/catkin_ws`)
 
 3. In a new terminal, run `roscore`
-4. In a new terminal, run openvr_ros_driver using 
-`~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vr_teleop/openvr_ros_driver/openvr_ros_driver_node`
-5. In a new terminal, run dual_arm_teleop using 
-`roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
+4. In a new terminal, run openvr_ros_driver using  
+   `~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vr_teleop/openvr_ros_driver/openvr_ros_driver_node`
+5. In a new terminal, run dual_arm_teleop using  
+   `roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
+6. In a new terminal, run rviz using  
+   `rviz src/vr_teleop/dual_arm_teleop/launch/moveit.rviz`
 
 ### Controls
 ![alt-text][vive-controller-layout]
 
 The controls for operating the robot are as follows:
-1. **Menu button**
+1. **Menu button** - Position lock
 2. **Trackpad**  
    Button click - Toggle on/off teleop control
 3. **System button**
@@ -66,7 +68,7 @@ The controls for operating the robot are as follows:
 5. **Micro-USB port**
 6. **Tracking sensor**
 7. **Trigger** - Gripper control
-8. **Grip button** - Orientation reset/position lock
+8. **Grip button** - Orientation reset
 
 
 ## Troubleshooting
