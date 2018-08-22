@@ -53,6 +53,8 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
 `~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vr_teleop/openvr_ros_driver/openvr_ros_driver_node`
 5. In a new terminal, run dual_arm_teleop using 
 `roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
+6. In a new terminal, run rviz using 
+`rviz src/vr_teleop/dual_arm_teleop/launch/moveit.rviz`
 
 ### Controls
 ![alt-text][vive-controller-layout]
