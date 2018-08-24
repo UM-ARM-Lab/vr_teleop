@@ -1,5 +1,5 @@
 # VR Teleop
-This repository contains a pipeline enabling users to control robots with virtual reality devices. Currently, only the HTC Vive has been tested, but in theory other virtual reality devices should work with minor tweaking.
+This repository contains a pipeline enabling users to control the Victor robot with virtual reality devices. Currently, support for virtual reality devices extends only to the HTC Vive, but in theory other devices should be compatible with minor tweaking.
 
 ## Installation
 Note: this pipeline has been tested on a GeForce video card running nvidia-390 drivers, on Ubuntu 16.04. Other setups may or may not work out of the box.
@@ -55,6 +55,8 @@ Remember to have your catkin workspace sourced and cd into it for each of the be
    `roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
 6. In a new terminal, run rviz using  
    `rviz src/vr_teleop/dual_arm_teleop/launch/moveit.rviz`
+
+At this point, you can either launch the real victor or the fake victor. The teleop node publishes commands in impedance mode.
 
 ### Controls
 ![alt-text][vive-controller-layout]
