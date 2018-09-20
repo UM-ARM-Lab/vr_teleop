@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import or_victor.motion_victor
 from victor_hardware_interface import victor_utils as vu
 from victor_hardware_interface.msg import *
 import rospy
@@ -11,46 +12,39 @@ import rospy
 MAGIC_SLEEP_PARAM = 1.0
 
 
-
-def init_left_arm():
-    vu.set_control_mode(ControlMode.JOINT_IMPEDANCE, "left_arm", stiffness=vu.Stiffness.MEDIUM)
-    msg = MotionCommand()
-    msg.control_mode.mode = ControlMode.JOINT_IMPEDANCE;
-    msg.joint_position.joint_1 = 1.6;
-    msg.joint_position.joint_2 = 0.5;
-    msg.joint_position.joint_3 = -1;
-    msg.joint_position.joint_4 = -1;
-    msg.joint_position.joint_5 = 0;
-    msg.joint_position.joint_6 = 1;
-    msg.joint_position.joint_7 = 0;
-
-    pub = rospy.Publisher("left_arm/motion_command", MotionCommand, queue_size=10)
-    rospy.sleep(MAGIC_SLEEP_PARAM)
-    pub.publish(msg)
+left = [-0.292, 0.002, 0.466, -1.053, -0.016, 1.198, 0.825]
+right = [-0.226, 0.209, 0.095, -0.889, -0.203, 1.247, -2.122]
 
 
-def init_right_arm():
+def init_left_arm(mev):
     cm = ControlMode.JOINT_IMPEDANCE
-    vu.set_control_mode(cm, "right_arm", stiffness=vu.Stiffness.STIFF, vel=1.0, accel=1.0)
-    msg = MotionCommand()
-    msg.control_mode.mode = cm;
-    msg.joint_position.joint_1 = 1.6;
-    msg.joint_position.joint_2 = -0.5;
-    msg.joint_position.joint_3 = 1;
-    msg.joint_position.joint_4 = 1;
-    msg.joint_position.joint_5 = 0;
-    msg.joint_position.joint_6 = -1;
-    msg.joint_position.joint_7 = 0;
+    vu.set_control_mode(cm, "left_arm", stiffness=vu.Stiffness.MEDIUM, vel=1.0, accel=1.0)
+    mev.set_manipulator("left_arm")
+    mev.plan_to_configuration(left, blocking=True, execute=True)
+    
+    pub = rospy.Publisher("left_arm/motion_command", MotionCommand, queue_size=10)
+    vu.set_control_mode(cm, "left_arm", stiffness=vu.Stiffness.STIFF, vel=1.0, accel=1.0)
+
+
+def init_right_arm(mev):
+    cm = ControlMode.JOINT_IMPEDANCE
+    vu.set_control_mode(cm, "right_arm", stiffness=vu.Stiffness.MEDIUM, vel=1.0, accel=1.0)
+    mev.set_manipulator("right_arm")
+    mev.plan_to_configuration(right, blocking=True, execute=True)
+    
     pub = rospy.Publisher("right_arm/motion_command", MotionCommand, queue_size=10)
-    rospy.sleep(MAGIC_SLEEP_PARAM)
-    pub.publish(msg)
+    vu.set_control_mode(cm, "right_arm", stiffness=vu.Stiffness.STIFF, vel=1.0, accel=1.0)
+    # rospy.sleep(MAGIC_SLEEP_PARAM)
+    # pub.publish(msg)
 
 
 if __name__ == "__main__":
     rospy.init_node("initialize_fake_victor")
-
-    # init_left_arm()
-    init_right_arm()
+    
+    mev = or_victor.motion_victor.MotionEnabledVictor()
+    
+    # init_left_arm(mev)
+    init_right_arm(mev)
 
 
 
