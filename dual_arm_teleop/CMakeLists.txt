@@ -49,3 +49,10 @@ add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
 )
+
+
+add_executable(unity_teleop_node src/robot_arm.cpp src/unity_teleop.cpp)
+target_link_libraries(unity_teleop_node
+  ${catkin_LIBRARIES}
+)
+

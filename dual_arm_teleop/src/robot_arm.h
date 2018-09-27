@@ -15,6 +15,8 @@
 // Vive
 #include <vive_msgs/ViveSystem.h>
 
+#include <geometry_msgs/PoseStamped.h>
+
 // Victor
 #include <victor_hardware_interface/MotionCommand.h>
 #include <victor_hardware_interface/MotionStatus.h>
@@ -24,6 +26,7 @@
 
 // TF
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <tf_conversions/tf_eigen.h>
 
 // Eigen
@@ -43,6 +46,9 @@ private:
     Eigen::Affine3d ee_reset_pose;
     Eigen::Affine3d controller_reset_pose;
 
+    Eigen::Affine3d palm_to_flange;
+    bool palm_to_flange_calculated=false;
+
     std::vector<double> joint_position_measured;
 
     // Topic publishers/subscribers
@@ -51,6 +57,7 @@ private:
     ros::Subscriber sub_arm_status;
 
     tf::TransformBroadcaster tf_broadcaster;
+    tf::TransformListener tf_listener;
     ros::Publisher pub_controller_mesh;
 
     bool enabled = false; // arm control toggle by keybind
@@ -91,7 +98,9 @@ public:
 
     void publishControllerMarker(Eigen::Affine3d mesh_pose);
 
-    std::vector<double> solveRobotJoints(Eigen::Affine3d ee_target_pose);
+    std::vector<double> IK(geometry_msgs::PoseStamped ee_target_pose);
+    
+    std::vector<double> IK(Eigen::Affine3d ee_target_pose);
 
 };
 

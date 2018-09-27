@@ -18,6 +18,7 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
     kinematic_state->setToDefaultValues();
 
     ee_last_valid_pose = kinematic_state->getGlobalLinkTransform(joint_model_group->getLinkModelNames().back());
+    
     joint_position_measured.resize(7);
 
     pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(joint_model_group->getName() + "/motion_command", 10);
@@ -81,7 +82,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
     // Skip control if not enabled
     if (enabled)
     {
-        std::vector<double> joint_values = solveRobotJoints(ee_target_pose);
+        std::vector<double> joint_values = IK(ee_target_pose);
         publishArmCommand(joint_values);
         handleGripperCommand(msg_controller.joystick.axes[2]);
 
@@ -126,7 +127,14 @@ void RobotArm::handleGripperCommand(double command_position)
     }
 }
 
-std::vector<double> RobotArm::solveRobotJoints(Eigen::Affine3d ee_target_pose)
+std::vector<double> RobotArm::IK(geometry_msgs::PoseStamped ee_target_pose)
+{
+    Eigen::Affine3d target;
+    tf::poseMsgToEigen(ee_target_pose.pose, target);
+    return IK(target);
+}
+
+std::vector<double> RobotArm::IK(Eigen::Affine3d ee_target_pose)
 {
     // Generate IK solutions
     const kinematics::KinematicsBaseConstPtr& solver = joint_model_group->getSolverInstance();
@@ -176,9 +184,10 @@ void RobotArm::publishArmCommand(std::vector<double> joint_positions)
 
     msg_out_arm.joint_position = victor_utils::vectorToJvq(joint_positions);
     // Publish state messages
-    if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position), DELTA)) {
-        pub_arm.publish(msg_out_arm);
-    }
+    // if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position), DELTA)) {
+    //     pub_arm.publish(msg_out_arm);
+    // }
+    pub_arm.publish(msg_out_arm);
 }
 
 void RobotArm::publishGripperCommand(double gripper_pos)
@@ -263,6 +272,16 @@ bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded, doub
 
     return distance < delta;
 }
+
+// Eigen::Affine3d RobotArm::getPalmToFlange()
+// {
+//     if(!palm_to_flange_calulated)
+//     {
+//         palm_to_flange = tf_listener.get;
+//         palm_to_flange_calculated=true;
+//     }
+//     return palm_to_flange;
+// }
 
 void RobotArm::callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg) {
     joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);
