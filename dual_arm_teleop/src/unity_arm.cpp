@@ -1,4 +1,4 @@
-#include "robot_arm.h"
+#include "unity_arm.h"
 
 #define DELTA 0.7
 
@@ -10,7 +10,6 @@
 RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
 {
     std::string name = joint_model_group_name;
-    this->controller_hand = controller_hand;
     this->kinematic_model = kinematic_model;
     this->kinematic_state = kinematic_state;
 
@@ -18,8 +17,6 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
 
     kinematic_state->setToDefaultValues();
 
-    ee_last_valid_pose = kinematic_state->getGlobalLinkTransform(
-        joint_model_group->getLinkModelNames().back());
     joint_position_measured.resize(7);
     pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(name + "/motion_command", 10);
     pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
@@ -27,96 +24,6 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
     sub_arm_status = n.subscribe(name + "/motion_status", 10,
                                  &RobotArm::callbackArmStatusUpdate, this);
     pub_target = n.advertise<sensor_msgs::JointState>(name + "/target", 10);
-    pub_controller_mesh = n.advertise<visualization_msgs::Marker>(name + "/controller_mesh", 10);
-    gripper_transform = getGripperTransform();
-}
-
-Eigen::Affine3d RobotArm::getGripperTransform()
-{
-    Eigen::AngleAxisd rotx(M_PI, Eigen::Vector3d::UnitX());
-    Eigen::AngleAxisd rotz(-M_PI*1/4, Eigen::Vector3d::UnitZ());
-    Eigen::Affine3d transz(Eigen::Translation3d(0, 0, 0.15));
-    return transz*rotz*rotx;
-}
-
-bool RobotArm::getThisArmMsg(vive_msgs::ViveSystem msg, vive_msgs::Controller &controller)
-{
-    if(controller_hand != 1 && controller_hand != 2)
-    {
-        return false;
-    }
-
-    for(auto ctrl: msg.controllers)
-    {
-        if(ctrl.id == controller_hand)
-        {
-            controller = ctrl;
-            return true;
-        }
-    }
-    return false;
-}
-
-void RobotArm::control(vive_msgs::ViveSystem msg)
-{
-    vive_msgs::Controller msg_controller;
-    if(!getThisArmMsg(msg, msg_controller))
-    {
-        return;
-    }
-    updateEnabledStatus(msg_controller);
-
-    Eigen::Affine3d controller_pose;
-    tf::poseMsgToEigen(msg_controller.posestamped.pose, controller_pose);
-    // Rotate to correct controller orientation
-    controller_pose = controller_pose * gripper_transform;
-
-    handleReset(msg_controller, controller_pose);
-
-
-    // Pose representing controller delta between last and current
-    Eigen::Affine3d controller_delta_pose = controller_reset_pose.inverse() * controller_pose;
-
-    // Pose representing desired end effector pose
-    Eigen::Affine3d ee_target_pose = ee_reset_pose * controller_delta_pose;
-
-    // Skip control if not enabled
-    if (enabled)
-    {
-        std::vector<double> joint_values = IK(ee_target_pose);
-        publishArmCommand(joint_values);
-        handleGripperCommand(msg_controller.joystick.axes[2]);
-
-    }
-
-    broadcastPose(controller_pose, "controller_global");
-    broadcastPose(controller_reset_pose, "controller_reset");
-    broadcastPose(ee_last_valid_pose, "ee_last_valid");
-    broadcastPose(ee_target_pose, "ee_target");
-
-    publishControllerMarker(ee_target_pose * gripper_transform);
-}
-
-void RobotArm::updateEnabledStatus(vive_msgs::Controller controller_msg)
-{
-    // Toggle activation status
-    if (controller_msg.joystick.buttons[2] == 2 && !trackpad_pressed) {
-        enabled = !enabled;
-    }
-    trackpad_pressed = (controller_msg.joystick.buttons[2] == 2);
-
-}
-
-void RobotArm::handleReset(vive_msgs::Controller controller_msg, Eigen::Affine3d controller_pose)
-{
-    // Store reset pose
-    if (controller_msg.joystick.buttons[1] == 2 || !initialized)
-    {
-        controller_reset_pose = controller_pose;
-        ee_reset_pose = ee_last_valid_pose;
-
-        initialized = true;
-    }
 }
 
 void RobotArm::handleGripperCommand(double command_position)
@@ -165,8 +72,6 @@ std::vector<double> RobotArm::IK(Eigen::Affine3d ee_target_pose)
         SeedDistanceFunctor functor(seed);
         std::priority_queue<std::vector<double>, std::vector<std::vector<double>>, SeedDistanceFunctor> slnQueue(solutions.begin(), solutions.end(), functor);
         kinematic_state->setJointGroupPositions(joint_model_group, slnQueue.top());
-
-        // ee_last_valid_pose = ee_target_pose;
     }
 
     std::cerr << "Got " << solutions.size() << " solutions for " << joint_model_group->getName() << std::endl;
@@ -185,10 +90,10 @@ void RobotArm::publishArmCommand(std::vector<double> joint_positions)
 
     msg_out_arm.joint_position = victor_utils::vectorToJvq(joint_positions);
     // Publish state messages
-    // if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position), DELTA)) {
-    //     pub_arm.publish(msg_out_arm);
-    // }
-    pub_arm.publish(msg_out_arm);
+    if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position), DELTA)) {
+        pub_arm.publish(msg_out_arm);
+    }
+    // pub_arm.publish(msg_out_arm);
 }
 
 void RobotArm::publishGripperCommand(double gripper_pos)
@@ -225,38 +130,6 @@ void RobotArm::publishGripperCommand(double gripper_pos)
 
 }
 
-void RobotArm::broadcastPose(Eigen::Affine3d pose, std::string name)
-{
-    tf::Transform tf_pose;
-    tf::poseEigenToTF(pose, tf_pose);
-    tf_broadcaster.sendTransform(tf::StampedTransform(tf_pose, ros::Time::now(),
-                                                      kinematic_model->getRootLinkName(),
-                                                      joint_model_group->getName() + "/" + name));
-}
-
-void RobotArm::publishControllerMarker(Eigen::Affine3d mesh_pose)
-{
-    // Display controller mesh
-    visualization_msgs::Marker msg_out_controller_mesh;
-    msg_out_controller_mesh.header.frame_id = kinematic_model->getRootLinkName();
-    msg_out_controller_mesh.header.stamp = ros::Time();
-    msg_out_controller_mesh.ns = "vive";
-    msg_out_controller_mesh.type = visualization_msgs::Marker::MESH_RESOURCE;
-    tf::poseEigenToMsg(mesh_pose, msg_out_controller_mesh.pose);
-    msg_out_controller_mesh.scale.x = 1;
-    msg_out_controller_mesh.scale.y = 1;
-    msg_out_controller_mesh.scale.z = 1;
-    msg_out_controller_mesh.color.r = 1;
-    msg_out_controller_mesh.color.g = 1;
-    msg_out_controller_mesh.color.b = 1;
-    msg_out_controller_mesh.color.a = 1;
-    msg_out_controller_mesh.mesh_resource = "package://dual_arm_teleop/meshes/vr_controller_vive_1_5/vr_controller_vive_1_5.obj";
-    msg_out_controller_mesh.mesh_use_embedded_materials = 0;
-
-    pub_controller_mesh.publish(msg_out_controller_mesh);
-
-}
-
 bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded, double delta)
 {
     assert(joint_position_commanded.size() == joint_position_measured.size());
@@ -274,18 +147,7 @@ bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded, doub
     return distance < delta;
 }
 
-// Eigen::Affine3d RobotArm::getPalmToFlange()
-// {
-//     if(!palm_to_flange_calulated)
-//     {
-//         palm_to_flange = tf_listener.get;
-//         palm_to_flange_calculated=true;
-//     }
-//     return palm_to_flange;
-// }
-
 void RobotArm::callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg) {
     joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);
-    kinematic_state->setJointGroupPositions(joint_model_group, joint_position_measured);
-    ee_last_valid_pose = kinematic_state->getGlobalLinkTransform(joint_model_group->getLinkModelNames().back());    
+    // kinematic_state->setJointGroupPositions(joint_model_group, joint_position_measured);
 }

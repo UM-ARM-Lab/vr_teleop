@@ -45,10 +45,6 @@ private:
     robot_state::RobotStatePtr kinematic_state;
     robot_state::JointModelGroup* joint_model_group;
 
-    Eigen::Affine3d ee_last_valid_pose;
-    Eigen::Affine3d ee_reset_pose;
-    Eigen::Affine3d controller_reset_pose;
-
     Eigen::Affine3d palm_to_flange;
     bool palm_to_flange_calculated=false;
 
@@ -82,25 +78,11 @@ public:
     // Methods
     RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n);
 
-    void control(vive_msgs::ViveSystem msg);
-
-    void updateEnabledStatus(vive_msgs::Controller controller_msg);
-
-    Eigen::Affine3d getGripperTransform();
-
-    void handleReset(vive_msgs::Controller controller_msg, Eigen::Affine3d controller_pose);
-
     void handleGripperCommand(double command_position);
-
-    bool getThisArmMsg(vive_msgs::ViveSystem msg, vive_msgs::Controller &controller);
 
     void publishGripperCommand(double gripper_pos);
 
     void publishArmCommand(std::vector<double> joint_positions);
-
-    void broadcastPose(Eigen::Affine3d pose, std::string name);
-
-    void publishControllerMarker(Eigen::Affine3d mesh_pose);
 
     std::vector<double> IK(geometry_msgs::PoseStamped ee_target_pose);
     

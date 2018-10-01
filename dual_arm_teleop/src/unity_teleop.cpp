@@ -10,6 +10,8 @@
 // Vive
 // #include <vive_msgs/ViveSystem.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <sensor_msgs/JointState.h>
+#include <sensor_msgs/Joy.h>
 
 // TF
 #include <tf/transform_broadcaster.h>
@@ -25,7 +27,11 @@ class DualArmTeleop
 private:
     ros::NodeHandle n;
     ros::Subscriber sub_right;
-    ros::Publisher pub_display_robot_state;
+    ros::Subscriber sub_joy_right;
+    ros::Subscriber sub_left;
+    ros::Subscriber sub_joy_left;
+    
+    ros::Publisher pub_joint_state;
 
     robot_model::RobotModelPtr kinematic_model;
     robot_state::RobotStatePtr kinematic_state;
@@ -35,9 +41,6 @@ private:
 public:
     DualArmTeleop()
         {
-            // sub_vive = n.subscribe<vive_msgs::ViveSystem>("vive", 10, &DualArmTeleop::callback, this);
-            // pub_display_robot_state = n.advertise<moveit_msgs::DisplayRobotState>("display_robot_state", 1);
-
             // Initialize kinematic model
             robot_model_loader::RobotModelLoader robot_model_load("robot_description");
 
@@ -48,25 +51,47 @@ public:
             victor_arms[LEFT_IND] = new RobotArm("left_arm", 1, kinematic_model, kinematic_state, n);
             victor_arms[RIGHT_IND] = new RobotArm("right_arm", 2, kinematic_model, kinematic_state, n);
 
-            sub_right = n.subscribe<geometry_msgs::PoseStamped>("target_pose/right_ee", 10, &DualArmTeleop::callbackRight, this);
+            sub_right = n.subscribe<geometry_msgs::PoseStamped>(
+                "target_pose/right_flange", 10, &DualArmTeleop::callbackRight, this);
+            sub_left = n.subscribe<geometry_msgs::PoseStamped>(
+                "target_pose/left_flange", 10, &DualArmTeleop::callbackLeft, this);
+            sub_joy_right = n.subscribe<sensor_msgs::Joy>(
+                "right_gripper/target", 10, &DualArmTeleop::callbackRightJoy, this);
+            sub_joy_left = n.subscribe<sensor_msgs::Joy>(
+                "left_gripper/target", 10, &DualArmTeleop::callbackLeftJoy, this);
+
+            pub_joint_state = n.advertise<sensor_msgs::JointState>("target_joint_states", 1);
         }
 
     void callbackRight(geometry_msgs::PoseStamped target_pose)
         {
             auto joint_positions = victor_arms[RIGHT_IND]->IK(target_pose);
             victor_arms[RIGHT_IND]->publishArmCommand(joint_positions);
+
+            sensor_msgs::JointState joint_state;
+            robot_state::robotStateToJointStateMsg(*kinematic_state, joint_state);
+            pub_joint_state.publish(joint_state);
         }
 
-    void callback(vive_msgs::ViveSystem msg) {
-        for (auto &victor_arm : victor_arms)
+    void callbackLeft(geometry_msgs::PoseStamped target_pose)
         {
-            victor_arm->control(msg);
+            auto joint_positions = victor_arms[LEFT_IND]->IK(target_pose);
+            victor_arms[LEFT_IND]->publishArmCommand(joint_positions);
+
+            sensor_msgs::JointState joint_state;
+            robot_state::robotStateToJointStateMsg(*kinematic_state, joint_state);
+            pub_joint_state.publish(joint_state);
         }
 
-        moveit_msgs::DisplayRobotState display_robot_state;
-        robot_state::robotStateToRobotStateMsg(*kinematic_state, display_robot_state.state);
-        pub_display_robot_state.publish(display_robot_state);
-    }
+    void callbackRightJoy(sensor_msgs::Joy joy)
+        {
+            victor_arms[RIGHT_IND]->publishGripperCommand(joy.buttons[0]);
+        }
+
+    void callbackLeftJoy(sensor_msgs::Joy joy)
+        {
+            victor_arms[LEFT_IND]->publishGripperCommand(joy.buttons[0]);
+        }
 };
 
 int main(int argc, char** argv)
