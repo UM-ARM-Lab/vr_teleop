@@ -1,4 +1,5 @@
 #include "unity_arm.h"
+#include "std_msgs/String.h"
 
 #define DELTA 0.7
 
@@ -24,6 +25,7 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
     sub_arm_status = n.subscribe(name + "/motion_status", 10,
                                  &RobotArm::callbackArmStatusUpdate, this);
     pub_target = n.advertise<sensor_msgs::JointState>(name + "/target", 10);
+    pub_is_valid = n.advertise<std_msgs::String>(name + "/is_ik_valid", 10);
 }
 
 void RobotArm::handleGripperCommand(double command_position)
@@ -68,7 +70,13 @@ std::vector<double> RobotArm::IK(Eigen::Affine3d ee_target_pose)
     solver->getPositionIK(target_poses, seed, solutions, result, options);
 
     // Pick the solution that matches closest to the measured joint state
-    if (!solutions.empty()) {
+    if (solutions.empty()) {
+        std_msgs::String msg;
+        msg.data = "invalid";
+        pub_is_valid.publish(msg);
+    }
+    else
+    {
         SeedDistanceFunctor functor(seed);
         std::priority_queue<std::vector<double>, std::vector<std::vector<double>>, SeedDistanceFunctor> slnQueue(solutions.begin(), solutions.end(), functor);
         kinematic_state->setJointGroupPositions(joint_model_group, slnQueue.top());
@@ -90,9 +98,14 @@ void RobotArm::publishArmCommand(std::vector<double> joint_positions)
 
     msg_out_arm.joint_position = victor_utils::vectorToJvq(joint_positions);
     // Publish state messages
+    std_msgs::String msg;
+    msg.data = "invalid";
+
     if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position), DELTA)) {
         pub_arm.publish(msg_out_arm);
+        msg.data = "valid";
     }
+    pub_is_valid.publish(msg);
     // pub_arm.publish(msg_out_arm);
 }
 
@@ -150,4 +163,5 @@ bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded, doub
 void RobotArm::callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg) {
     joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);
     // kinematic_state->setJointGroupPositions(joint_model_group, joint_position_measured);
+    
 }
