@@ -104,16 +104,26 @@ SeedDistanceFunctor(Solution _seed) : seed(std::move(_seed)) {}
             for (size_t i = 0; i < a.size(); ++i)
             {
                 //d += fabs(a[i]-b[i]);
-                d += pow(a[i]-b[i], 2);
+                d += fabs(a[i]-b[i]);
             }
             return d;
+        }
+
+    double cost(const Solution& q) const
+        {
+            double c = 0.0;
+            for(double qi: q)
+            {
+                c += fabs(qi);
+            }
+            return c + distance(seed, q);
         }
 
     // NB: priority_queue is a max-heap structure, so less() should actually return >
     // "highest priority"
     bool operator()(const Solution& a, const Solution& b) const
         {
-            return distance(seed, a) > distance(seed, b);
+            return cost(a) > cost(b);
         }
 };
 

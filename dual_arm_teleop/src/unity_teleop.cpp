@@ -85,12 +85,12 @@ public:
 
     void callbackRightJoy(sensor_msgs::Joy joy)
         {
-            victor_arms[RIGHT_IND]->publishGripperCommand(joy.buttons[0]);
+            victor_arms[RIGHT_IND]->publishGripperCommand(joy.axes[0]);
         }
 
     void callbackLeftJoy(sensor_msgs::Joy joy)
         {
-            victor_arms[LEFT_IND]->publishGripperCommand(joy.buttons[0]);
+            victor_arms[LEFT_IND]->publishGripperCommand(joy.axes[0]);
         }
 };
 

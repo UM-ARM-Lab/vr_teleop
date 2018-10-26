@@ -16,12 +16,12 @@ limitations under the License.
 <launch>
 
 	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
-		<param name="port" value="9090"/>
+	  <!-- <arg name="port" value="9090"/> -->
 	</include>
 
 	<node name="file_server" pkg="file_server" type="file_server" output="screen"/>
 
-        <node name="kinect_pose_publisher" pkg="victor_unity" type="kinect_pose_publisher.py"
+        <node name="kinect_pose_publisher" pkg="unity_launch_files" type="kinect_pose_publisher.py"
               output="screen"/>
 
         <include file="$(find dual_arm_teleop)/launch/unity_teleop.launch"/>
@@ -29,6 +29,8 @@ limitations under the License.
 	<param name="robot/name" value="Victor"/>
 
         <param name="joint_state_publisher/rate" value="30"/>
+
+        <include file="$(find image_utils)/launch/record_kinect.launch"/>
 
         <!-- <group> -->
         <!--   <machine name='realtime' address='realtime'/> -->
