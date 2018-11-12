@@ -30,6 +30,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS
     ${THIS_PACKAGE_INCLUDE_DIRS}
+    include/${PROJECT_NAME}
   CATKIN_DEPENDS
     moveit_core
     moveit_visual_tools
@@ -38,7 +39,7 @@ catkin_package(
     EIGEN3
 )
 
-include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS}, include/${PROJECT_NAME})
 include_directories(SYSTEM
 # include
   ${catkin_INCLUDE_DIRS}

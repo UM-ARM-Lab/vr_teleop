@@ -32,6 +32,7 @@ limitations under the License.
 
         <include file="$(find image_utils)/launch/record_kinect.launch"/>
 
+
         <!-- <group> -->
         <!--   <machine name='realtime' address='realtime'/> -->
         <!--   <include file="$(find victor_hardware_interface)/launch/dual_arm_lcm_bridge.launch"> -->
