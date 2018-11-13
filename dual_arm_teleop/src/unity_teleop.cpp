@@ -23,6 +23,8 @@ DualArmTeleop::DualArmTeleop()
         "left_gripper/target", 10, &DualArmTeleop::callbackLeftJoy, this);
 
     pub_joint_state = n.advertise<sensor_msgs::JointState>("target_joint_states", 1);
+
+    srv_enable = n.advertiseService("set_enabled", &DualArmTeleop::setEnabled, this);
 }
 
 void DualArmTeleop::callbackArm(geometry_msgs::PoseStamped target_pose, int arm_ind)
@@ -36,6 +38,12 @@ void DualArmTeleop::callbackArm(geometry_msgs::PoseStamped target_pose, int arm_
     {
         victor_arms[arm_ind]->publishArmCommand(joint_positions);
     }
+}
+
+bool DualArmTeleop::setEnabled(dual_arm_teleop::SetEnabled::Request &req,
+                               dual_arm_teleop::SetEnabled::Request &res)
+{
+    teleop_enabled = req.enabled;
 }
 
 int main(int argc, char** argv)

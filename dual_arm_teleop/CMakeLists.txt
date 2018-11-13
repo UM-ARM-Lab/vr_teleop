@@ -25,8 +25,21 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   victor_hardware_interface
   vive_msgs
+  message_generation
+  std_msgs
 )
 
+#  MESSAGES -------------------------
+add_service_files(
+  FILES
+  SetEnabled.srv
+  )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  )
+
+# ---------------------------------------
 catkin_package(
   INCLUDE_DIRS
     ${THIS_PACKAGE_INCLUDE_DIRS}
@@ -35,9 +48,12 @@ catkin_package(
     moveit_core
     moveit_visual_tools
     moveit_ros_planning_interface
+    message_runtime
   DEPENDS
     EIGEN3
 )
+
+
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS}, include/${PROJECT_NAME})
 include_directories(SYSTEM

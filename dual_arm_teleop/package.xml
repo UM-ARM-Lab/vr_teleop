@@ -50,6 +50,9 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
+  
   <build_depend>pluginlib</build_depend>
   <build_depend>eigen</build_depend>
   <build_depend>moveit_core</build_depend>

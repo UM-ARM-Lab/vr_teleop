@@ -1,5 +1,7 @@
 #include <ros/ros.h>
 
+#include "dual_arm_teleop/SetEnabled.h"
+
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
@@ -31,6 +33,7 @@ private:
     ros::Subscriber sub_joy_left;
     
     ros::Publisher pub_joint_state;
+    ros::ServiceServer srv_enable;
 
     robot_model::RobotModelPtr kinematic_model;
     robot_state::RobotStatePtr kinematic_state;
@@ -63,4 +66,7 @@ public:
     {
         victor_arms[LEFT_IND]->publishGripperCommand(joy.axes[0]);
     }
+
+    bool setEnabled(dual_arm_teleop::SetEnabled::Request &req,
+                    dual_arm_teleop::SetEnabled::Request &res);
 };
