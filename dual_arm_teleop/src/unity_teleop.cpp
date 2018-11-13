@@ -1,27 +1,5 @@
 #include "unity_teleop.hpp"
 
-#include <ros/ros.h>
-
-
-// MoveIt!
-#include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/robot_model/robot_model.h>
-#include <moveit/robot_state/conversions.h>
-#include <moveit/robot_state/robot_state.h>
-#include <moveit_msgs/DisplayRobotState.h>
-
-// Vive
-// #include <vive_msgs/ViveSystem.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <sensor_msgs/JointState.h>
-#include <sensor_msgs/Joy.h>
-
-// TF
-#include <tf/transform_broadcaster.h>
-
-#include "robot_arm.h"
-#define LEFT_IND 0
-#define RIGHT_IND 1
 
 DualArmTeleop::DualArmTeleop()
 {

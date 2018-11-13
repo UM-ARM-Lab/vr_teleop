@@ -21,7 +21,6 @@
 #define RIGHT_IND 1
 
 
-
 class DualArmTeleop
 {
 private:
