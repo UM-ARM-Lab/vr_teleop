@@ -59,14 +59,16 @@ public:
 
     void callbackRightJoy(sensor_msgs::Joy joy)
     {
-        victor_arms[RIGHT_IND]->publishGripperCommand(joy.axes[0]);
+        callbackJoy(joy, RIGHT_IND);
     }
 
     void callbackLeftJoy(sensor_msgs::Joy joy)
     {
-        victor_arms[LEFT_IND]->publishGripperCommand(joy.axes[0]);
+        callbackJoy(joy, LEFT_IND);
     }
 
-    bool setEnabled(dual_arm_teleop::SetEnabled::Request &req,
-                    dual_arm_teleop::SetEnabled::Request &res);
+    void callbackJoy(sensor_msgs::Joy joy, int arm_ind);
+
+    bool setEnabledCallback(dual_arm_teleop::SetEnabled::Request &req,
+                            dual_arm_teleop::SetEnabled::Request &res);
 };

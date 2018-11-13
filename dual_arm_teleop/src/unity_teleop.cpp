@@ -24,7 +24,7 @@ DualArmTeleop::DualArmTeleop()
 
     pub_joint_state = n.advertise<sensor_msgs::JointState>("target_joint_states", 1);
 
-    srv_enable = n.advertiseService("set_enabled", &DualArmTeleop::setEnabled, this);
+    srv_enable = n.advertiseService("set_enabled", &DualArmTeleop::setEnabledCallback, this);
 }
 
 void DualArmTeleop::callbackArm(geometry_msgs::PoseStamped target_pose, int arm_ind)
@@ -40,8 +40,17 @@ void DualArmTeleop::callbackArm(geometry_msgs::PoseStamped target_pose, int arm_
     }
 }
 
-bool DualArmTeleop::setEnabled(dual_arm_teleop::SetEnabled::Request &req,
-                               dual_arm_teleop::SetEnabled::Request &res)
+void DualArmTeleop::callbackJoy(sensor_msgs::Joy joy, int arm_ind)
+{
+    if(teleop_enabled)
+    {
+        victor_arms[arm_ind]->publishGripperCommand(joy.axes[0]);
+    }
+}
+
+
+bool DualArmTeleop::setEnabledCallback(dual_arm_teleop::SetEnabled::Request &req,
+                                       dual_arm_teleop::SetEnabled::Request &res)
 {
     teleop_enabled = req.enabled;
 }
