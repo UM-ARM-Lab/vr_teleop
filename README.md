@@ -1,6 +1,8 @@
 # VR Teleop
 This repository contains a pipeline enabling users to control the Victor robot with virtual reality devices. Currently, support for virtual reality devices extends only to the HTC Vive, but in theory other devices should be compatible with minor tweaking.
 
+## Demo
+[![Victor Demo](https://i.imgur.com/OlLNeAE.png)](https://youtu.be/6RulnpVsO-8)
 ## Installation
 Note: this pipeline has been tested on a GeForce video card running nvidia-390 drivers, on Ubuntu 16.04. Other setups may or may not work out of the box.
 
