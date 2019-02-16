@@ -5,12 +5,14 @@ from geometry_msgs.msg import PoseStamped
 import tf2_ros
 
 def talker():
+    rospy.init_node('kinect_pose_publisher', anonymous=True)
+
     buf = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(buf)
     pub_roof = rospy.Publisher('kinect_pose_roof', PoseStamped, queue_size=10)
     pub_victor_head = rospy.Publisher('kinect_pose_victor_head', PoseStamped, queue_size=10)
     
-    rospy.init_node('kinect_pose_publisher', anonymous=True)
+
     rate = rospy.Rate(1) # 10hz
     
     while not rospy.is_shutdown():
