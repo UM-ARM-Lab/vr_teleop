@@ -141,7 +141,7 @@ std::vector<double> RobotArm::IK(Eigen::Affine3d ee_target_pose)
     const kinematics::KinematicsBaseConstPtr& solver = joint_model_group->getSolverInstance();
     assert(solver.get());
 
-    Eigen::Affine3d solverTrobot = Eigen::Affine3d::Identity();
+    Eigen::Isometry3d solverTrobot = Eigen::Isometry3d::Identity();
     kinematic_state->setToIKSolverFrame(solverTrobot, solver);
 
     // Convert to solver frame
