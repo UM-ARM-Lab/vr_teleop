@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   arc_utilities
+  OpenCV
 )
 
 find_package(OpenCV REQUIRED core highgui)
