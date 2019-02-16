@@ -45,7 +45,7 @@ private:
     robot_state::RobotStatePtr kinematic_state;
     robot_state::JointModelGroup* joint_model_group;
 
-    Eigen::Affine3d palm_to_flange;
+    Eigen::Isometry3d palm_to_flange;
     bool palm_to_flange_calculated=false;
 
     std::vector<double> joint_position_measured;
@@ -66,7 +66,7 @@ private:
     bool initialized = false; // true if *_start_[translation/rotation] has been initialized
     bool trackpad_pressed = false;
 
-    Eigen::Affine3d gripper_transform;
+    Eigen::Isometry3d gripper_transform;
 
     double prev_gripper_command = 0;
 
@@ -88,7 +88,7 @@ public:
 
     std::vector<double> IK(geometry_msgs::PoseStamped ee_target_pose);
     
-    std::vector<double> IK(Eigen::Affine3d ee_target_pose);
+    std::vector<double> IK(Eigen::Isometry3d ee_target_pose);
 
 };
 

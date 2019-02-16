@@ -39,22 +39,22 @@ void RobotArm::handleGripperCommand(double command_position)
 
 std::vector<double> RobotArm::IK(geometry_msgs::PoseStamped ee_target_pose)
 {
-    Eigen::Affine3d target;
+    Eigen::Isometry3d target;
     tf::poseMsgToEigen(ee_target_pose.pose, target);
     return IK(target);
 }
 
-std::vector<double> RobotArm::IK(Eigen::Affine3d ee_target_pose)
+std::vector<double> RobotArm::IK(Eigen::Isometry3d ee_target_pose)
 {
     // Generate IK solutions
     const kinematics::KinematicsBaseConstPtr& solver = joint_model_group->getSolverInstance();
     assert(solver.get());
 
-    Eigen::Affine3d solverTrobot = Eigen::Affine3d::Identity();
+    Eigen::Isometry3d solverTrobot = Eigen::Isometry3d::Identity();
     kinematic_state->setToIKSolverFrame(solverTrobot, solver);
 
     // Convert to solver frame
-    Eigen::Affine3d pt_solver = solverTrobot * ee_target_pose;
+    Eigen::Isometry3d pt_solver = solverTrobot * ee_target_pose;
 
     std::vector<geometry_msgs::Pose> target_poses;
     geometry_msgs::Pose pose;

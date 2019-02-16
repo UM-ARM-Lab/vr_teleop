@@ -69,6 +69,7 @@ target_link_libraries(${PROJECT_NAME}_node
 
 
 add_executable(unity_teleop_node src/unity_arm.cpp src/unity_teleop.cpp)
+add_dependencies(unity_teleop_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(unity_teleop_node
   ${catkin_LIBRARIES}
 )
