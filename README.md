@@ -20,6 +20,7 @@ roslaunch mps_launch_file kinect_vicon_real_robot.launch
 
 Terminal 5:
 export ROS_MASTER_URI=http://loki.local:11311
+rosrun dual_arm_teleop make_victor_fast.py
 roslaunch unity_launch_files unity_setup.launch
 
 
