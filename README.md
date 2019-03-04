@@ -2,26 +2,36 @@
 
 
 Terminal 1:
+```
 ssh loki
 roscore
+```
 
 Terminal 2:
+```
 ssh realtime
-export ROS_MASTER_URI=http://realtime.local:11311
+export ROS_MASTER_URI=http://loki.local:11311
 roslaunch victor_hardware_interface dualarm_lcm_bridge.launch
+```
 
 Terminal 3:
+```
 ssh loki
 roslaunch kinect2_calibration_files kinect2_bridge_victor_head.launch --screen
+```
 
 Terminal 4:
+```
 ssh loki
 roslaunch mps_launch_file kinect_vicon_real_robot.launch
+```
 
 Terminal 5:
+```
 export ROS_MASTER_URI=http://loki.local:11311
 rosrun dual_arm_teleop make_victor_fast.py
 roslaunch unity_launch_files unity_setup.launch
+```
 
 
 
