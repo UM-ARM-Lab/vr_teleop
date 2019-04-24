@@ -48,6 +48,8 @@ def init_right_arm():
 if __name__ == "__main__":
     rospy.init_node("initialize_fake_victor")
 
+    rospy.sleep(0.5)
+
     init_left_arm()
     init_right_arm()
 

@@ -1,3 +1,44 @@
+# VR teleop for unity:
+
+
+Terminal 1:
+```
+ssh loki
+roscore
+```
+
+Terminal 2:
+```
+ssh realtime
+export ROS_MASTER_URI=http://loki.local:11311
+roslaunch victor_hardware_interface dualarm_lcm_bridge.launch
+```
+
+Terminal 3:
+```
+ssh loki
+roslaunch kinect2_calibration_files kinect2_bridge_victor_head.launch --screen
+```
+
+Terminal 4:
+```
+ssh loki
+roslaunch mps_launch_file kinect_vicon_real_robot.launch
+```
+
+Terminal 5:
+```
+export ROS_MASTER_URI=http://loki.local:11311
+rosrun dual_arm_teleop make_victor_fast.py
+roslaunch unity_launch_files unity_setup.launch
+```
+
+
+
+
+
+# Old (For installing without unity).......
+
 # VR Teleop
 This repository contains a pipeline enabling users to control the Victor robot with virtual reality devices. Currently, support for virtual reality devices extends only to the HTC Vive, but in theory other devices should be compatible with minor tweaking.
 

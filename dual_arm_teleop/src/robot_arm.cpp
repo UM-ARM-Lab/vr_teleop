@@ -9,6 +9,7 @@
 /// \param n Reference to global node handle
 RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
 {
+    std::string name = joint_model_group_name;
     this->controller_hand = controller_hand;
     this->kinematic_model = kinematic_model;
     this->kinematic_state = kinematic_state;
@@ -17,15 +18,16 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
 
     kinematic_state->setToDefaultValues();
 
-    ee_last_valid_pose = kinematic_state->getGlobalLinkTransform(joint_model_group->getLinkModelNames().back());
+    ee_last_valid_pose = kinematic_state->getGlobalLinkTransform(
+        joint_model_group->getLinkModelNames().back());
     joint_position_measured.resize(7);
-
-    pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(joint_model_group->getName() + "/motion_command", 10);
-    pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(joint_model_group->getName() + "/gripper_command", 10);
-    sub_arm_status = n.subscribe(joint_model_group->getName() + "/motion_status", 10, &RobotArm::callbackArmStatusUpdate, this);
-
-    pub_controller_mesh = n.advertise<visualization_msgs::Marker>(joint_model_group->getName() + "/controller_mesh", 10);
-
+    pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(name + "/motion_command", 10);
+    pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
+        name + "/gripper_command", 10);
+    sub_arm_status = n.subscribe(name + "/motion_status", 10,
+                                 &RobotArm::callbackArmStatusUpdate, this);
+    pub_target = n.advertise<sensor_msgs::JointState>(name + "/target", 10);
+    pub_controller_mesh = n.advertise<visualization_msgs::Marker>(name + "/controller_mesh", 10);
     gripper_transform = getGripperTransform();
 }
 
@@ -81,7 +83,7 @@ void RobotArm::control(vive_msgs::ViveSystem msg)
     // Skip control if not enabled
     if (enabled)
     {
-        std::vector<double> joint_values = solveRobotJoints(ee_target_pose);
+        std::vector<double> joint_values = IK(ee_target_pose);
         publishArmCommand(joint_values);
         handleGripperCommand(msg_controller.joystick.axes[2]);
 
@@ -126,13 +128,20 @@ void RobotArm::handleGripperCommand(double command_position)
     }
 }
 
-std::vector<double> RobotArm::solveRobotJoints(Eigen::Affine3d ee_target_pose)
+std::vector<double> RobotArm::IK(geometry_msgs::PoseStamped ee_target_pose)
+{
+    Eigen::Affine3d target;
+    tf::poseMsgToEigen(ee_target_pose.pose, target);
+    return IK(target);
+}
+
+std::vector<double> RobotArm::IK(Eigen::Affine3d ee_target_pose)
 {
     // Generate IK solutions
     const kinematics::KinematicsBaseConstPtr& solver = joint_model_group->getSolverInstance();
     assert(solver.get());
 
-    Eigen::Affine3d solverTrobot = Eigen::Affine3d::Identity();
+    Eigen::Isometry3d solverTrobot = Eigen::Isometry3d::Identity();
     kinematic_state->setToIKSolverFrame(solverTrobot, solver);
 
     // Convert to solver frame
@@ -176,9 +185,10 @@ void RobotArm::publishArmCommand(std::vector<double> joint_positions)
 
     msg_out_arm.joint_position = victor_utils::vectorToJvq(joint_positions);
     // Publish state messages
-    if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position), DELTA)) {
-        pub_arm.publish(msg_out_arm);
-    }
+    // if (armWithinDelta(victor_utils::jvqToVector(msg_out_arm.joint_position), DELTA)) {
+    //     pub_arm.publish(msg_out_arm);
+    // }
+    pub_arm.publish(msg_out_arm);
 }
 
 void RobotArm::publishGripperCommand(double gripper_pos)
@@ -263,6 +273,16 @@ bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded, doub
 
     return distance < delta;
 }
+
+// Eigen::Affine3d RobotArm::getPalmToFlange()
+// {
+//     if(!palm_to_flange_calulated)
+//     {
+//         palm_to_flange = tf_listener.get;
+//         palm_to_flange_calculated=true;
+//     }
+//     return palm_to_flange;
+// }
 
 void RobotArm::callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg) {
     joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);

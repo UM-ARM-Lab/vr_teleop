@@ -25,20 +25,37 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   victor_hardware_interface
   vive_msgs
+  message_generation
+  std_msgs
 )
 
+#  MESSAGES -------------------------
+add_service_files(
+  FILES
+  SetEnabled.srv
+  )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  )
+
+# ---------------------------------------
 catkin_package(
   INCLUDE_DIRS
     ${THIS_PACKAGE_INCLUDE_DIRS}
+    include/${PROJECT_NAME}
   CATKIN_DEPENDS
     moveit_core
     moveit_visual_tools
     moveit_ros_planning_interface
+    message_runtime
   DEPENDS
     EIGEN3
 )
 
-include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
+
+
+include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS}, include/${PROJECT_NAME})
 include_directories(SYSTEM
 # include
   ${catkin_INCLUDE_DIRS}
@@ -49,3 +66,11 @@ add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
 )
+
+
+add_executable(unity_teleop_node src/unity_arm.cpp src/unity_teleop.cpp)
+add_dependencies(unity_teleop_node ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(unity_teleop_node
+  ${catkin_LIBRARIES}
+)
+

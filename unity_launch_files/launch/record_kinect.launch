@@ -1,0 +1,10 @@
+<launch>
+  <!-- <arg image_topic -->
+  <node name="kinect_recorder" pkg="image_view" type="video_recorder"
+        output="screen">
+    <remap from="image" to="/kinect2_victor_head/qhd/image_color_rect"/>
+    <param name="fps" value="10"/>
+    <param name="codec" value="H264"/>
+    <param name="filename" value="$(env HOME)/Videos/output.avi"/>
+  </node>
+</launch>

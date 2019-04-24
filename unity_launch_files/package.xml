@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>dual_arm_teleop</name>
+  <name>unity_launch_files</name>
   <version>0.0.0</version>
-  <description>The dual_arm_teleop package</description>
+  <description>The unity_launch_files package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="andriym@todo.todo">andriym</maintainer>
+  <maintainer email="brad.saund@gmail.com">BradSaund</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/dual_arm_teleop</url> -->
+  <!-- <url type="website">http://wiki.ros.org/unity_launch_files</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -49,39 +49,6 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-
-  <depend>message_generation</depend>
-  <depend>message_runtime</depend>
-  
-  <build_depend>pluginlib</build_depend>
-  <build_depend>eigen</build_depend>
-  <build_depend>moveit_core</build_depend>
-  <build_depend>moveit_ros_planning</build_depend>
-  <build_depend>moveit_ros_planning_interface</build_depend>
-  <build_depend>moveit_visual_tools</build_depend>
-  <build_depend>geometric_shapes</build_depend>
-  <build_depend>victor_hardware_interface</build_depend>
-  <build_depend>vive_msgs</build_depend>
-
-  <build_export_depend>pluginlib</build_export_depend>
-  <build_export_depend>eigen</build_export_depend>
-  <build_export_depend>moveit_core</build_export_depend>
-  <build_export_depend>moveit_ros_planning</build_export_depend>
-  <build_export_depend>moveit_ros_planning_interface</build_export_depend>
-  <build_export_depend>moveit_visual_tools</build_export_depend>
-  <build_export_depend>geometric_shapes</build_export_depend>
-  <build_export_depend>victor_hardware_interface</build_export_depend>
-  <build_export_depend>vive_msgs</build_export_depend>
-
-  <exec_depend>pluginlib</exec_depend>
-  <exec_depend>eigen</exec_depend>
-  <exec_depend>moveit_core</exec_depend>
-  <exec_depend>moveit_ros_planning</exec_depend>
-  <exec_depend>moveit_ros_planning_interface</exec_depend>
-  <exec_depend>moveit_visual_tools</exec_depend>
-  <exec_depend>geometric_shapes</exec_depend>
-  <exec_depend>victor_hardware_interface</exec_depend>
-  <exec_depend>vive_msgs</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
