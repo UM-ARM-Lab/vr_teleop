@@ -1,5 +1,6 @@
 # VR teleop for unity:
 
+## Installation
 
 Terminal 1:
 ```
@@ -29,59 +30,16 @@ roslaunch unity_launch_files unity_setup.launch
 
 
 
-
-
-# Old (For installing without unity).......
-
-# VR Teleop
-This repository contains a pipeline enabling users to control the Victor robot with virtual reality devices. Currently, support for virtual reality devices extends only to the HTC Vive, but in theory other devices should be compatible with minor tweaking.
-
-## Demo
-[![Victor Demo](https://i.imgur.com/OlLNeAE.png)](https://youtu.be/6RulnpVsO-8)
-## Installation
-Note: this pipeline has been tested on a GeForce video card running nvidia-390 drivers, on Ubuntu 16.04. Other setups may or may not work out of the box.
-
-1. Install ROS
-
-   Follow all the instructions to install ROS Kinetic. Please make sure you have followed all steps, including calls to rosdep.  
-   [ROS Install Instructions](http://wiki.ros.org/kinetic/Installation/Ubuntu) 
-
-2. Install MoveIt!
-
-   Follow all the instructions to install MoveIt! Please make sure you are following the instructions for ROS Kinetic.  
-   [MoveIt! Install instructions](http://moveit.ros.org/install/)
-   
-   Install the moveit-visual-tools: `sudo apt-get install ros-kinetic-moveit-visual-tools`
-
-3. Install Steam
-
-   Launch the debian installer to install Steam.  
-   [Steam download](https://store.steampowered.com/about/)
-
-4. Install SteamVR
-
-   1. Launch the Steam application and log in with an account
-   2. Click on Library > VR
-   3. Select SteamVR and click install
-   
-   You can also install SteamVR using Steam's browser protocol (enter this link into your browser's address bar): `steam://install/250820`
-   
-3. Clone kuka_iiwa_interface into catkin workspace  
-   `git clone https://github.com/UM-ARM-Lab/kuka_iiwa_interface.git`  
-4. Clone arc_utilities into catkin workspace  
-   `git clone https://github.com/UM-ARM-Lab/arc_utilities.git`  
-5. **Recursively** clone this repository into catkin workspace  
-   `git clone --recurse-submodules https://github.com/UM-ARM-Lab/vr_teleop.git`
-6. Build the entire catkin workspace
-
 ## Usage
-1. Connect HTC Vive to computer
+1. Connect HTC Vive to computer (or plug in battery if using wireless)
 2. Launch SteamVR
    1. Launch Steam
    2. Click on Library > VR
    3. Select SteamVR and click play
    
    If you are running SteamVR for first time, please start the SteamVR room setup to calibrate the device.
+   
+2. (If using wireless) Launch VIVE Wireless
 
 Remember to have your catkin workspace sourced and cd into it for each of the below steps. (example: `source ~/catkin_ws/devel/setup.bash && cd ~/catkin_ws`)
 
