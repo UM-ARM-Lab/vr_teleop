@@ -61,15 +61,15 @@ roslaunch unity_launch_files unity_setup.launch
 ![alt-text][vive-controller-layout]
 
 The controls for operating the robot are as follows:
-1. **Menu button** - Position lock
+1. **Menu button** - 
 2. **Trackpad**  
-   Button click - Toggle on/off teleop control
+   Teleportation
 3. **System button**
 4. **Status light**
 5. **Micro-USB port**
 6. **Tracking sensor**
-7. **Trigger** - Gripper control
-8. **Grip button** - Orientation reset
+7. **Trigger** - open and close the grippers
+8. **Grip button** - "Grab" the robot arm
 
 
 ## Troubleshooting
