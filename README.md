@@ -11,14 +11,15 @@ Currently in the armlab you will need the computer `armor`. You will also need t
 
 ### On the windows computer (Armor) 
 1. Connect HTC Vive to computer (or plug in battery if using wireless)
-2. Launch SteamVR
+2. (If using wireless) Launch VIVE Wireless
+3. Launch SteamVR
    1. Launch Steam
    2. Click on Library > VR
    3. Select SteamVR and click play
    
    If you are running SteamVR for first time, please start the SteamVR room setup to calibrate the device.
    
-3. (If using wireless) Launch VIVE Wireless
+
 
 ### On the linux computer running ROS (The linux VM inside Armor)
 Note in this example the computer `loki` is connected to the Kinect. `realtime` provides the interface to the physical robot.
