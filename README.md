@@ -7,7 +7,7 @@ You will need
 - (optionally) A linux computer connected to the physical robot, exposing the proper interface
 - (optionally) A linux computer connected to a kinect publishing a pointcloud
 
-Currently in the armlab you will need the computer `armor`. You will also need the computer `realtime` if you are running the physical robot.
+Currently in the armlab you will need the computer `armor`. You will also need the computer `realtime` and `loki` if you are running the physical robot.
 
 ### On the windows computer (Armor) 
 1. Connect HTC Vive to computer (or plug in battery if using wireless)
