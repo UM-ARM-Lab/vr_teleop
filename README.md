@@ -1,6 +1,27 @@
 # VR teleop for unity:
 
-## Installation
+## How to run:
+You will need 
+- A windows computer with unity connected to the Vive
+- A linux computer (or virtual machine) with ROS
+- (optionally) A linux computer connected to the physical robot, exposing the proper interface
+- (optionally) A linux computer connected to a kinect publishing a pointcloud
+
+Currently in the armlab you will need the computer `armor`. You will also need the computer `realtime` if you are running the physical robot.
+
+### On the windows computer (Armor) 
+1. Connect HTC Vive to computer (or plug in battery if using wireless)
+2. Launch SteamVR
+   1. Launch Steam
+   2. Click on Library > VR
+   3. Select SteamVR and click play
+   
+   If you are running SteamVR for first time, please start the SteamVR room setup to calibrate the device.
+   
+3. (If using wireless) Launch VIVE Wireless
+
+### On the linux computer running ROS (The linux VM inside Armor)
+Note in this example the computer `loki` is connected to the Kinect. `realtime` provides the interface to the physical robot.
 
 Terminal 1:
 ```
@@ -27,31 +48,14 @@ export ROS_MASTER_URI=http://loki.local:11311
 rosrun dual_arm_teleop make_victor_fast.py
 roslaunch unity_launch_files unity_setup.launch
 ```
+(Note, if `make_victor_fast` fails, check that the Victor robot is in impedance mode)
+
+### Back on the Windows computer
+1. Launch unity
+2. Check that the IP is correct (Check that the `RosBridgeSettings` from the unity panel matches the IP from the linux computer)
+3. `Play` the unity environment
 
 
-
-## Usage
-1. Connect HTC Vive to computer (or plug in battery if using wireless)
-2. Launch SteamVR
-   1. Launch Steam
-   2. Click on Library > VR
-   3. Select SteamVR and click play
-   
-   If you are running SteamVR for first time, please start the SteamVR room setup to calibrate the device.
-   
-2. (If using wireless) Launch VIVE Wireless
-
-Remember to have your catkin workspace sourced and cd into it for each of the below steps. (example: `source ~/catkin_ws/devel/setup.bash && cd ~/catkin_ws`)
-
-3. In a new terminal, run `roscore`
-4. In a new terminal, run openvr_ros_driver using  
-   `~/.steam/steam/ubuntu12_32/steam-runtime/run.sh build/vr_teleop/openvr_ros_driver/openvr_ros_driver_node`
-5. In a new terminal, run dual_arm_teleop using  
-   `roslaunch dual_arm_teleop dual_arm_teleop_node.launch`
-6. In a new terminal, run rviz using  
-   `rviz src/vr_teleop/dual_arm_teleop/launch/moveit.rviz`
-
-At this point, you can either launch the real victor or the fake victor. The teleop node publishes commands in impedance mode.
 
 ### Controls
 ![alt-text][vive-controller-layout]
