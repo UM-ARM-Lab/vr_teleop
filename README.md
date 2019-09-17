@@ -18,7 +18,7 @@ roslaunch victor_hardware_interface dual_arm_lcm_bridge.launch
 Terminal 3:
 ```
 ssh loki
-roslaunch mps_launch_file kinect_vicon_real_robot.launch pov:="victor_head" fps_limit:="10"
+roslaunch mps_launch_files kinect_vicon_real_robot.launch pov:="victor_head" fps_limit:="10"
 ```
 
 Terminal 4:
