@@ -53,7 +53,7 @@ roslaunch unity_launch_files unity_setup.launch
 
 ### Back on the Windows computer
 1. Launch unity, and open the project `unity_victor_teleop`
-2. Check that the IP is correct. `RosBridgeSettings` from the unity panel must match the IP from the linux computer (which you can see using `ifconfig`)
+2. Check that the IP is correct. `RosBridgeSettings` from the unity panel must match the IP from the linux computer running the unity setup (The IP of the vm on armor, which you can see using `ifconfig`)
 3. `Play` the unity environment
 
 
