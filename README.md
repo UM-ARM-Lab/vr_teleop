@@ -12,7 +12,7 @@ Terminal 2:
 ```
 ssh realtime
 export ROS_MASTER_URI=http://loki.local:11311
-roslaunch victor_hardware_interface dualarm_lcm_bridge.launch
+roslaunch victor_hardware_interface dual_arm_lcm_bridge.launch
 ```
 
 Terminal 3:
