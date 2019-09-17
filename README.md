@@ -51,8 +51,8 @@ roslaunch unity_launch_files unity_setup.launch
 (Note, if `make_victor_fast` fails, check that the Victor robot is in impedance mode)
 
 ### Back on the Windows computer
-1. Launch unity
-2. Check that the IP is correct (Check that the `RosBridgeSettings` from the unity panel matches the IP from the linux computer)
+1. Launch unity, and open the project `unity_victor_teleop`
+2. Check that the IP is correct. `RosBridgeSettings` from the unity panel must match the IP from the linux computer (which you can see using `ifconfig`)
 3. `Play` the unity environment
 
 
