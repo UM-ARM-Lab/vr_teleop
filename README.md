@@ -57,7 +57,7 @@ roslaunch unity_launch_files unity_setup.launch
 
 
 
-### Controls
+## Controls
 ![alt-text][vive-controller-layout]
 
 The controls for operating the robot are as follows:
