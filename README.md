@@ -2,7 +2,7 @@
 
 ## How to run:
 You will need 
-- A windows computer with unity connected to the Vive
+- A windows computer with unity connected to the Vive with the [Unity package](https://github.com/UM-ARM-Lab/unity_victor_teleop)
 - A linux computer (or virtual machine) with ROS
 - (optionally) A linux computer connected to the physical robot, exposing the proper interface
 - (optionally) A linux computer connected to a kinect publishing a pointcloud
@@ -18,7 +18,6 @@ Currently in the armlab you will need the computer `armor`. You will also need t
    3. Select SteamVR and click play
    
    If you are running SteamVR for first time, please start the SteamVR room setup to calibrate the device.
-   
 
 
 ### On the linux computer running ROS (The linux VM inside Armor)
@@ -51,7 +50,7 @@ roslaunch unity_launch_files unity_setup.launch
 ```
 (Note, if `make_victor_fast` fails, check that the Victor robot is in impedance mode)
 
-### Back on the Windows computer
+### Back on the Windows computer (Armor)
 1. Launch unity, and open the project `unity_victor_teleop`
 2. Check that the IP is correct. `RosBridgeSettings` from the unity panel must match the IP from the linux computer running the unity setup (The IP of the vm on armor, which you can see using `ifconfig`). The form is `ws://10.10.10.124:9090`
 3. `Play` the unity environment
