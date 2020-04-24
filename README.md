@@ -1,4 +1,8 @@
 # VR teleop for unity:
+This is the ROS portion of the armlabs VR teleopeartion suite. You will also need the [Unity package](https://github.com/UM-ARM-Lab/unity_victor_teleop).
+
+![flow diagram](flow_diagram.png)
+
 
 ## How to run:
 You will need 
