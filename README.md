@@ -3,6 +3,10 @@ This is the ROS portion of the armlabs VR teleopeartion suite. You will also nee
 
 ![flow diagram](flow_diagram.png)
 
+Videos of the Robot operated using this software can be found on Youtube:
+- [Making pancakes](https://www.youtube.com/watch?v=EahUsJKVfw8)
+- [Filling a shopping bag](https://www.youtube.com/watch?v=EvpxsqET01c)
+
 
 ## How to run:
 You will need 
