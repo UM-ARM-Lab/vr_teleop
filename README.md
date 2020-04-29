@@ -10,6 +10,8 @@ Videos of the Robot operated using this software can be found on Youtube:
 
 
 ## How to run:
+(This is a quick reference. See the [tutorials](https://github.com/UM-ARM-Lab/unity_victor_teleop/wiki/Tutorial-1:-Set-up-Unity-package) for more detailed instructions)
+
 You will need 
 - A windows computer with unity connected to the Vive with the [Unity package](https://github.com/UM-ARM-Lab/unity_victor_teleop)
 - A linux computer (or virtual machine) with ROS
