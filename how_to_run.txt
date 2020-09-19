@@ -13,7 +13,7 @@ roslaunch mps_launch_files kinect_victor_real_robot.launch
 
 Terminal 4:
 ssh loki
-roslaunch kinect2_calibration_files kinect2_bridge_victor_head.launch
+roslaunch kinect2_calibration_files kinect2_bridge_victor_head.launch fps_limit:=10
 
 Terminal 5:
 lokimaster

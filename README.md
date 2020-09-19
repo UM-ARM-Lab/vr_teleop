@@ -12,7 +12,7 @@ roslaunch victor_hardware_interface dualarm_lcm_bridge.launch
 
 Terminal 3:
 ssh loki
-roslaunch kinect2_calibration_files kinect2_bridge_victor_head.launch --screen
+roslaunch kinect2_calibration_files kinect2_bridge_victor_head.launch --screen fps_limit:=10
 
 Terminal 4:
 ssh loki

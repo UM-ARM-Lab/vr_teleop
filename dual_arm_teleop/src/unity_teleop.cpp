@@ -14,13 +14,13 @@ DualArmTeleop::DualArmTeleop()
     victor_arms[RIGHT_IND] = new RobotArm("right_arm", 2, kinematic_model, kinematic_state, n);
 
     sub_right = n.subscribe<geometry_msgs::PoseStamped>(
-        "target_pose/right_flange", 10, &DualArmTeleop::callbackRight, this);
+        "target_pose/right_flange", 1, &DualArmTeleop::callbackRight, this);
     sub_left = n.subscribe<geometry_msgs::PoseStamped>(
-        "target_pose/left_flange", 10, &DualArmTeleop::callbackLeft, this);
+        "target_pose/left_flange", 1, &DualArmTeleop::callbackLeft, this);
     sub_joy_right = n.subscribe<sensor_msgs::Joy>(
-        "right_gripper/target", 10, &DualArmTeleop::callbackRightJoy, this);
+        "right_gripper/target", 1, &DualArmTeleop::callbackRightJoy, this);
     sub_joy_left = n.subscribe<sensor_msgs::Joy>(
-        "left_gripper/target", 10, &DualArmTeleop::callbackLeftJoy, this);
+        "left_gripper/target", 1, &DualArmTeleop::callbackLeftJoy, this);
 
     pub_joint_state = n.advertise<sensor_msgs::JointState>("target_joint_states", 1);
 
