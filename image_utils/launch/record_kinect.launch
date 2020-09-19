@@ -1,0 +1,11 @@
+<launch>
+  <!-- <arg image_topic -->
+  <node name="kinect_recorder" pkg="image_utils" type="video_recorder_node"
+        output="screen">
+    <remap from="image" to="/kinect2_victor_head/qhd/image_color_rect"/>
+    <param name="fps" value="10"/>
+    <param name="codec" value="H264"/>
+    <param name="filename" value="$(env HOME)/Videos/Unity_recording/output.avi"/>
+    <param name="stamped_filename" value="true"/>
+  </node>
+</launch>
