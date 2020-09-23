@@ -8,6 +8,10 @@ Videos of the Robot operated using this software can be found on Youtube:
 - [Making pancakes](https://www.youtube.com/watch?v=EahUsJKVfw8)
 - [Filling a shopping bag](https://www.youtube.com/watch?v=EvpxsqET01c)
 
+## Installation
+Dependencies
+- moveit (planning interface, visual-tools)
+
 
 ## How to run:
 (This is a quick reference. See the [tutorials](https://github.com/UM-ARM-Lab/unity_victor_teleop/wiki/Tutorial-1:-Set-up-Unity-package) for more detailed instructions)
