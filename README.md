@@ -63,6 +63,8 @@ export ROS_MASTER_URI=http://loki.local:11311
 rosrun dual_arm_teleop make_victor_fast.py
 roslaunch unity_launch_files unity_setup.launch
 ```
+Note: Current version mismatch. Need to edit `victor_utils`. Delete the `/` from the service call name. Then `export ROS_NAMESPACE=/victor`
+
 (Note, if `make_victor_fast` fails, check that the Victor robot is in impedance mode)
 
 ### Back on the Windows computer (Armor)
