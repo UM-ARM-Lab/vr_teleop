@@ -16,17 +16,18 @@ endif()
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometric_shapes
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
-  moveit_visual_tools
+  # moveit_visual_tools
   pluginlib
   roscpp
   victor_hardware_interface
   vive_msgs
   message_generation
   std_msgs
+  eigen_conversions
+  tf_conversions
 )
 
 #  MESSAGES -------------------------
@@ -46,7 +47,7 @@ catkin_package(
     include/${PROJECT_NAME}
   CATKIN_DEPENDS
     moveit_core
-    moveit_visual_tools
+#    moveit_visual_tools
     moveit_ros_planning_interface
     message_runtime
   DEPENDS

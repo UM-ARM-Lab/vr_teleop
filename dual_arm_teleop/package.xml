@@ -68,7 +68,7 @@
   <build_export_depend>moveit_core</build_export_depend>
   <build_export_depend>moveit_ros_planning</build_export_depend>
   <build_export_depend>moveit_ros_planning_interface</build_export_depend>
-  <build_export_depend>moveit_visual_tools</build_export_depend>
+  <!-- <build_export_depend>moveit_visual_tools</build_export_depend> -->
   <build_export_depend>geometric_shapes</build_export_depend>
   <build_export_depend>victor_hardware_interface</build_export_depend>
   <build_export_depend>vive_msgs</build_export_depend>

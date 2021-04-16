@@ -17,12 +17,12 @@
 
   <group
       ns="unity_teleop">
-    <remap from="left_arm/motion_command" to="/left_arm/motion_command"/>
-    <remap from="left_arm/gripper_command" to="/left_arm/gripper_command"/>
-    <remap from="left_arm/motion_status" to="/left_arm/motion_status"/>
-    <remap from="right_arm/motion_command" to="/right_arm/motion_command"/>
-    <remap from="right_arm/gripper_command" to="/right_arm/gripper_command"/>
-    <remap from="right_arm/motion_status" to="/right_arm/motion_status"/>
+    <remap from="left_arm/motion_command" to="/victor/left_arm/motion_command"/>
+    <remap from="left_arm/gripper_command" to="/victor/left_arm/gripper_command"/>
+    <remap from="left_arm/motion_status" to="/victor/left_arm/motion_status"/>
+    <remap from="right_arm/motion_command" to="/victor/right_arm/motion_command"/>
+    <remap from="right_arm/gripper_command" to="/victor/right_arm/gripper_command"/>
+    <remap from="right_arm/motion_status" to="/victor/right_arm/motion_status"/>
     <node pkg="dual_arm_teleop"
           type="unity_teleop_node"
           name="unity_teleop_node"

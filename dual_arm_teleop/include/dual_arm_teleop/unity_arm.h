@@ -20,10 +20,10 @@
 #include <sensor_msgs/JointState.h>
 
 // Victor
-#include <victor_hardware_interface/MotionCommand.h>
-#include <victor_hardware_interface/MotionStatus.h>
-#include <victor_hardware_interface/Robotiq3FingerCommand.h>
-#include <victor_hardware_interface/Robotiq3FingerStatus.h>
+#include <victor_hardware_interface_msgs/MotionCommand.h>
+#include <victor_hardware_interface_msgs/MotionStatus.h>
+#include <victor_hardware_interface_msgs/Robotiq3FingerCommand.h>
+#include <victor_hardware_interface_msgs/Robotiq3FingerStatus.h>
 #include <victor_hardware_interface/victor_utils.hpp>
 
 // TF
@@ -74,7 +74,7 @@ private:
 
     // Methods
     bool armWithinDelta(std::vector<double> joint_position_commanded, double delta);
-    void callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg);
+    void callbackArmStatusUpdate(victor_hardware_interface_msgs::MotionStatus msg);
 
 public:
     // Methods

@@ -10,7 +10,7 @@
 /// \param n Reference to global node handle
 RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robot_model::RobotModelPtr kinematic_model, robot_state::RobotStatePtr kinematic_state, ros::NodeHandle n)
 {
-    std::string name = joint_model_group_name;
+    const std::string& name = joint_model_group_name;
     this->kinematic_model = kinematic_model;
     this->kinematic_state = kinematic_state;
 
@@ -19,8 +19,8 @@ RobotArm::RobotArm(std::string joint_model_group_name, int controller_hand, robo
     kinematic_state->setToDefaultValues();
 
     joint_position_measured.resize(7);
-    pub_arm = n.advertise<victor_hardware_interface::MotionCommand>(name + "/motion_command", 10);
-    pub_gripper = n.advertise<victor_hardware_interface::Robotiq3FingerCommand>(
+    pub_arm = n.advertise<victor_hardware_interface_msgs::MotionCommand>(name + "/motion_command", 10);
+    pub_gripper = n.advertise<victor_hardware_interface_msgs::Robotiq3FingerCommand>(
         name + "/gripper_command", 10);
     sub_arm_status = n.subscribe(name + "/motion_status", 10,
                                  &RobotArm::callbackArmStatusUpdate, this);
@@ -93,7 +93,7 @@ std::vector<double> RobotArm::IK(Eigen::Isometry3d ee_target_pose)
 
 void RobotArm::publishArmCommand(std::vector<double> joint_positions)
 {
-    victor_hardware_interface::MotionCommand msg_out_arm;
+    victor_hardware_interface_msgs::MotionCommand msg_out_arm;
     msg_out_arm.control_mode.mode = 2;
 
     msg_out_arm.joint_position = victor_utils::vectorToJvq(joint_positions);
@@ -112,24 +112,25 @@ void RobotArm::publishArmCommand(std::vector<double> joint_positions)
 void RobotArm::publishGripperCommand(double gripper_pos)
 {
     // Gripper control
-    victor_hardware_interface::Robotiq3FingerCommand msg_out_gripper;
+    using namespace victor_hardware_interface_msgs;
+    Robotiq3FingerCommand msg_out_gripper;
 
-    victor_hardware_interface::Robotiq3FingerActuatorCommand scissor;
+    Robotiq3FingerActuatorCommand scissor;
     scissor.speed = 1.0;
     scissor.force = 1.0;
     scissor.position = 1;
 
-    victor_hardware_interface::Robotiq3FingerActuatorCommand finger_a;
+    Robotiq3FingerActuatorCommand finger_a;
     finger_a.speed = 1.0;
     finger_a.force = 1.0;
     finger_a.position = gripper_pos;
 
-    victor_hardware_interface::Robotiq3FingerActuatorCommand finger_b;
+    Robotiq3FingerActuatorCommand finger_b;
     finger_b.speed = 1.0;
     finger_b.force = 1.0;
     finger_b.position = gripper_pos;
 
-    victor_hardware_interface::Robotiq3FingerActuatorCommand finger_c;
+    Robotiq3FingerActuatorCommand finger_c;
     finger_c.speed = 1.0;
     finger_c.force = 1.0;
     finger_c.position = gripper_pos;
@@ -160,7 +161,7 @@ bool RobotArm::armWithinDelta(std::vector<double> joint_position_commanded, doub
     return distance < delta;
 }
 
-void RobotArm::callbackArmStatusUpdate(victor_hardware_interface::MotionStatus msg) {
+void RobotArm::callbackArmStatusUpdate(victor_hardware_interface_msgs::MotionStatus msg) {
     joint_position_measured = victor_utils::jvqToVector(msg.measured_joint_position);
     // kinematic_state->setJointGroupPositions(joint_model_group, joint_position_measured);
     

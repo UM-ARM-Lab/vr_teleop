@@ -53,6 +53,7 @@ bool DualArmTeleop::setEnabledCallback(dual_arm_teleop::SetEnabled::Request &req
                                        dual_arm_teleop::SetEnabled::Request &res)
 {
     teleop_enabled = req.enabled;
+    return true;
 }
 
 int main(int argc, char** argv)
