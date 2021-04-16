@@ -62,12 +62,6 @@ include_directories(SYSTEM
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(${PROJECT_NAME}_node src/robot_arm.cpp src/dual_arm_teleop_node.cpp)
-add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_node
-  ${catkin_LIBRARIES}
-)
-
 
 add_executable(unity_teleop_node src/unity_arm.cpp src/unity_teleop.cpp)
 add_dependencies(unity_teleop_node ${PROJECT_NAME}_generate_messages_cpp)

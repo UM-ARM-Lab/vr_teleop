@@ -1,34 +1,34 @@
 <launch>
-  <arg name="debug" default="false" />
-  <arg name="use_gui" default="false" />
+    <arg name="debug" default="false"/>
+    <arg name="use_gui" default="false"/>
 
-  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
-  <include file="$(find victor_moveit_config)/launch/planning_context.launch">
-    <arg name="load_robot_description" value="true"/>
-  </include>
+    <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+    <include file="$(find victor_moveit_config)/launch/planning_context.launch">
+        <arg name="load_robot_description" value="true"/>
+    </include>
 
-  <!--&lt;!&ndash; Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) &ndash;&gt;-->
-  <!--<include file="$(find victor_moveit_config)/launch/move_group.launch">-->
+    <!--&lt;!&ndash; Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) &ndash;&gt;-->
+    <!--<include file="$(find victor_moveit_config)/launch/move_group.launch">-->
     <!--<arg name="allow_trajectory_execution" value="true"/>-->
     <!--<arg name="fake_execution" value="true"/>-->
     <!--<arg name="info" value="true"/>-->
     <!--<arg name="debug" value="$(arg debug)"/>-->
-  <!--</include>-->
+    <!--</include>-->
 
-  <group
-      ns="unity_teleop">
-    <remap from="left_arm/motion_command" to="/victor/left_arm/motion_command"/>
-    <remap from="left_arm/gripper_command" to="/victor/left_arm/gripper_command"/>
-    <remap from="left_arm/motion_status" to="/victor/left_arm/motion_status"/>
-    <remap from="right_arm/motion_command" to="/victor/right_arm/motion_command"/>
-    <remap from="right_arm/gripper_command" to="/victor/right_arm/gripper_command"/>
-    <remap from="right_arm/motion_status" to="/victor/right_arm/motion_status"/>
-    <node pkg="dual_arm_teleop"
-          type="unity_teleop_node"
-          name="unity_teleop_node"
-          respawn="false" output="screen">
-      <rosparam command="load"
-                file="$(find victor_moveit_config)/config/kinematics.yaml"/>
-    </node>
-  </group>
+    <group
+            ns="unity_teleop">
+        <remap from="left_arm/motion_command" to="/victor/left_arm/motion_command"/>
+        <remap from="left_arm/gripper_command" to="/victor/left_arm/gripper_command"/>
+        <remap from="left_arm/motion_status" to="/victor/left_arm/motion_status"/>
+        <remap from="right_arm/motion_command" to="/victor/right_arm/motion_command"/>
+        <remap from="right_arm/gripper_command" to="/victor/right_arm/gripper_command"/>
+        <remap from="right_arm/motion_status" to="/victor/right_arm/motion_status"/>
+        <node pkg="dual_arm_teleop"
+              type="unity_teleop_node"
+              name="unity_teleop_node"
+              respawn="false" output="screen">
+            <rosparam command="load"
+                      file="$(find victor_moveit_config)/config/kinematics.yaml"/>
+        </node>
+    </group>
 </launch>
