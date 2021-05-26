@@ -30,7 +30,7 @@ limitations under the License.
 
         <param name="joint_state_publisher/rate" value="30"/>
 
-        <include file="$(find image_utils)/launch/record_kinect.launch"/>
+        <!-- <include file="$(find image_utils)/launch/record_kinect.launch"/> -->
 
 
         <!-- <group> -->
