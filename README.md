@@ -11,6 +11,8 @@ Videos of the Robot operated using this software can be found on Youtube:
 ## Installation
 Dependencies
 - moveit (planning interface, visual-tools)
+- kuka_iiwa_interface (https://github.com/UM-ARM-Lab/kuka_iiwa_interface)
+- robotiq (https://github.com/UM-ARM-Lab/robotiq)
 
 
 ## How to run:
