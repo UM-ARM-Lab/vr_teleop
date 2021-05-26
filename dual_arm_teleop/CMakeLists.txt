@@ -16,17 +16,18 @@ endif()
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometric_shapes
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
-  moveit_visual_tools
+  # moveit_visual_tools
   pluginlib
   roscpp
   victor_hardware_interface
   vive_msgs
   message_generation
   std_msgs
+  eigen_conversions
+  tf_conversions
 )
 
 #  MESSAGES -------------------------
@@ -46,7 +47,7 @@ catkin_package(
     include/${PROJECT_NAME}
   CATKIN_DEPENDS
     moveit_core
-    moveit_visual_tools
+#    moveit_visual_tools
     moveit_ros_planning_interface
     message_runtime
   DEPENDS
@@ -59,12 +60,6 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS}, include/
 include_directories(SYSTEM
 # include
   ${catkin_INCLUDE_DIRS}
-)
-
-add_executable(${PROJECT_NAME}_node src/robot_arm.cpp src/dual_arm_teleop_node.cpp)
-add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_node
-  ${catkin_LIBRARIES}
 )
 
 
