@@ -10,12 +10,12 @@ right = [-0.226, 0.209, 0.095, -0.889, -0.203, 1.247, -2.122]
 
 def init_left_arm():
     cm = ControlMode.JOINT_IMPEDANCE
-    vu.set_control_mode(cm, "left_arm", stiffness=vu.Stiffness.STIFF, vel=1.0, accel=1.0)
+    vu.set_control_mode(cm, "/victor/left_arm", stiffness=vu.Stiffness.STIFF, vel=1.0, accel=1.0)
 
 
 def init_right_arm():
     cm = ControlMode.JOINT_IMPEDANCE
-    vu.set_control_mode(cm, "right_arm", stiffness=vu.Stiffness.STIFF, vel=1.0, accel=1.0)
+    vu.set_control_mode(cm, "/victor/right_arm", stiffness=vu.Stiffness.STIFF, vel=1.0, accel=1.0)
 
 
 if __name__ == "__main__":
