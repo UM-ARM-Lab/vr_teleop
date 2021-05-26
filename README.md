@@ -101,3 +101,5 @@ The controls for operating the robot are as follows:
 
 
 [vive-controller-layout]: https://www.vive.com/media/filer_public/17/5d/175d4252-dde3-49a2-aa86-c0b05ab4d445/guid-2d5454b7-1225-449c-b5e5-50a5ea4184d6-web.png "Vive Controller Layout"
+
+* If errors about missing packages, make sure you installed everything needed for ROS-sharp. e.g. `cannot find rosbridge_websocket` means you missed installing `sudo apt-get install ros-kinetic-rosbridge-server`
