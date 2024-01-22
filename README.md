@@ -1,3 +1,7 @@
+This repo is old, and connects to ROS 1 only.
+For ROS2 connectivity, use https://github.com/UM-ARM-Lab/vr_ros2_bridge
+
+
 # VR teleop for unity:
 This is the ROS portion of the armlabs VR teleopeartion suite. You will also need the [Unity package](https://github.com/UM-ARM-Lab/unity_victor_teleop).
 You can find further explanation on the [wiki](https://github.com/UM-ARM-Lab/unity_victor_teleop/wiki).
